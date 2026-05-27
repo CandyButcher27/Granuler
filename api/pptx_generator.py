@@ -134,7 +134,7 @@ def _calc_overall_score(pillars: list[dict], subtopics_per_pillar: int = SUBTOPI
     return sum(pillar_scores) / len(pillar_scores) * 10 if pillar_scores else 0.0
 
 
-def generate_report(intake: dict, pillars: list[dict], llm_global: dict, llm_pillars: list[dict]) -> bytes:
+def generate_report(intake: dict, pillars: list[dict], llm_global: dict, llm_pillars: list[dict], llm_narrative: dict | None = None) -> bytes:
     prs = Presentation(str(TEMPLATE_PATH))
     slides = prs.slides
 
@@ -253,6 +253,77 @@ def generate_report(intake: dict, pillars: list[dict], llm_global: dict, llm_pil
         sh = _get_shape_by_name(sp, "Text 12")
         if sh:
             _set_text(sh, llm.get("rec3", ""))
+
+    # --- Narrative slides (Phase 1 — dynamic for any client) ---
+    if llm_narrative:
+        nav = llm_narrative
+
+        # Slide 7: Business Drivers
+        s7 = slides[6]
+        drivers = nav.get("business_drivers", [])
+        for i, (title_name, desc_name) in enumerate([("Text 2","Text 3"),("Text 4","Text 5"),("Text 6","Text 7"),("Text 8","Text 9")]):
+            if i < len(drivers):
+                sh = _get_shape_by_name(s7, title_name)
+                if sh: _set_text(sh, drivers[i].get("title", ""))
+                sh = _get_shape_by_name(s7, desc_name)
+                if sh: _set_text(sh, drivers[i].get("description", ""))
+
+        # Slide 12: Weakest pillar spotlight
+        s12 = slides[11]
+        worst = min(pillars, key=lambda p: _calc_pillar_score(p["subtopics"]))
+        worst_score = _calc_pillar_score(worst["subtopics"])
+        sh = _get_shape_by_name(s12, "Text 0")
+        if sh: _set_text(sh, f"{worst['pillar']} Gap")
+        sh = _get_shape_by_name(s12, "Text 1")
+        if sh: _set_text(sh, f"{worst_score:.1f}")
+        sh = _get_shape_by_name(s12, "Text 3")
+        if sh: _set_text(sh, f"{worst['pillar']} Score — the weakest pillar in the assessment")
+        issues = nav.get("weakest_pillar_issues", [])
+        for i, (t, d) in enumerate([("Text 6","Text 7"),("Text 9","Text 10"),("Text 12","Text 13")]):
+            if i < len(issues):
+                sh = _get_shape_by_name(s12, t)
+                if sh: _set_text(sh, issues[i].get("title", ""))
+                sh = _get_shape_by_name(s12, d)
+                if sh: _set_text(sh, issues[i].get("description", ""))
+        impacts = nav.get("weakest_pillar_impacts", [])
+        for i, (t, d) in enumerate([("Text 16","Text 17"),("Text 19","Text 20")]):
+            if i < len(impacts):
+                sh = _get_shape_by_name(s12, t)
+                if sh: _set_text(sh, impacts[i].get("emoji_title", ""))
+                sh = _get_shape_by_name(s12, d)
+                if sh: _set_text(sh, impacts[i].get("description", ""))
+
+        # Slide 18: Quick Wins
+        s18 = slides[17]
+        qw = nav.get("quick_wins", [])
+        for i, (t, d) in enumerate([("Text 6","Text 7"),("Text 12","Text 13"),("Text 18","Text 19"),("Text 24","Text 25"),("Text 30","Text 31"),("Text 36","Text 37")]):
+            if i < len(qw):
+                sh = _get_shape_by_name(s18, t)
+                if sh: _set_text(sh, qw[i].get("title", ""))
+                sh = _get_shape_by_name(s18, d)
+                if sh: _set_text(sh, qw[i].get("description", ""))
+
+        # Slide 24: Cost of Inaction
+        s24 = slides[23]
+        risks = nav.get("inaction_risks", [])
+        for i, (t, d) in enumerate([("Text 3","Text 4"),("Text 6","Text 7"),("Text 9","Text 10"),("Text 12","Text 13")]):
+            if i < len(risks):
+                sh = _get_shape_by_name(s24, t)
+                if sh: _set_text(sh, risks[i].get("emoji_title", ""))
+                sh = _get_shape_by_name(s24, d)
+                if sh: _set_text(sh, risks[i].get("description", ""))
+        sh = _get_shape_by_name(s24, "Text 15")
+        if sh: _set_text(sh, nav.get("inaction_closing", ""))
+
+        # Slide 41: Expected Outcomes
+        s41 = slides[40]
+        outcomes = nav.get("expected_outcomes", [])
+        for i, (t, d) in enumerate([("Text 2","Text 3"),("Text 4","Text 5"),("Text 6","Text 7"),("Text 8","Text 9")]):
+            if i < len(outcomes):
+                sh = _get_shape_by_name(s41, t)
+                if sh: _set_text(sh, outcomes[i].get("title", ""))
+                sh = _get_shape_by_name(s41, d)
+                if sh: _set_text(sh, outcomes[i].get("description", ""))
 
     buf = io.BytesIO()
     prs.save(buf)
