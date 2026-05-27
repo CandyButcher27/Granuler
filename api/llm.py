@@ -24,11 +24,11 @@ def _extract_json(text: str) -> dict:
     return json.loads(text.strip())
 
 
-def _call(prompt: str, max_tokens: int | None = None) -> dict:
+def _call(prompt: str) -> dict:
     kwargs = dict(
         model=_MODEL,
         messages=[{"role": "user", "content": prompt + "\n\nRespond with raw JSON only. No markdown, no code fences."}],
-        max_tokens=max_tokens or _MAX_TOKENS,
+        max_tokens=_MAX_TOKENS,
         temperature=_TEMPERATURE,
     )
     if _API_KEY:
@@ -103,7 +103,7 @@ inaction_risks: list of exactly 4 objects each with "emoji_title" (use 🔴 for 
 inaction_closing: 1 sentence on how delay compounds the cost of inaction.
 
 expected_outcomes: list of exactly 4 objects each with "title" (2-4 words) and "description" (1 sentence). Measurable business outcomes from executing the transformation roadmap."""
-    return _call(prompt, max_tokens=4096)
+    return _call(prompt)
 
 
 def generate_global_content(
@@ -182,7 +182,7 @@ reporting: list of objects same shape — reporting, visibility, data quick wins
 automation: list of objects same shape — system and automation quick wins
 
 Each list should have 2-4 items. Only include realistic 30-60 day actions. Be specific to {company_name}'s actual pain points."""
-    return _call(prompt, max_tokens=3000)
+    return _call(prompt)
 
 
 def generate_risk_register(
@@ -212,7 +212,7 @@ risks: list of risk objects. Include all subtopics with score ≤3 or impact Hig
 - mitigation: 1 specific, actionable mitigation step
 
 Sort by urgency (Critical first). Be specific to the data provided."""
-    return _call(prompt, max_tokens=4096)
+    return _call(prompt)
 
 
 def generate_proposal(
@@ -250,4 +250,4 @@ cadence: recommended working cadence — weekly/monthly sessions, reviews, escal
 outcomes: 3-4 specific, measurable outcomes {company_name} can expect from the engagement
 success_measures: how success will be measured — score improvement targets, milestone completion, cost savings
 cta: 1-sentence call to action asking {company_name} to approve the next phase"""
-    return _call(prompt, max_tokens=3000)
+    return _call(prompt)

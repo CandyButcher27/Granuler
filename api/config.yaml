@@ -1,5 +1,5 @@
 model: "gemini/gemini-2.5-flash"
-max_tokens: 2048
+max_tokens: 4096
 temperature: 0.3
 pillar_count: 10
 subtopics_per_pillar: 4

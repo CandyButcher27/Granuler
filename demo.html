@@ -406,7 +406,15 @@
           </div>
           <div class="field">
             <label>Employee Count</label>
-            <input type="text" name="employee_count" placeholder="e.g. 150">
+            <select name="employee_count">
+              <option value="">Select...</option>
+              <option>Under 25</option>
+              <option>25–50</option>
+              <option>50–100</option>
+              <option>100–250</option>
+              <option>250–500</option>
+              <option>500+</option>
+            </select>
           </div>
           <div class="field">
             <label>Locations</label>
@@ -695,6 +703,7 @@ function buildSubtopicRow(pi, si, name) {
       </td>
       <td>
         <select class="priority-select" id="priority-${pi}-${si}">
+          <option>Critical</option>
           <option>High</option>
           <option selected>Medium</option>
           <option>Low</option>
@@ -866,14 +875,55 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
   }
 });
 
-buildPillars();
+const DEMO_DEFAULTS = {
+  intake: {
+    company_name: "Uni-tech Automation",
+    industry: "Manufacturing",
+    assessment_date: "2026-03-21",
+    assessor: "Ravi Kajaria",
+    revenue_range: "₹50–200 Cr",
+    employee_count: "100–250",
+    locations: "Pune",
+    key_stakeholders: "Laxman Katakkar, Prashant, Kiran Gadgil, QA Head, Plant Head (Shirvar), HR",
+    business_goals: "Business operations visibility via systems. Grow in US region. Accountability and measurability. Better and efficient systems for business growth. Identify bottlenecks that can be eliminated through systems. Data security and integrity for adhering to US clients.",
+    pain_points: "SAP S/4 Hana on outdated version 1709 — SAP FIORI unavailable. Basic SAP configuration needs upgrade. Data integration challenges. Manual analytics systems. Data integrity issues. Cybersecurity gaps. NAS box issues. No IT Policy.",
+    core_systems: "SAP S/4 Hana 1709, reporting tool",
+    major_risks: "Outdated SAP system. Dependency on key people. No DMS. Manual reporting. Data center hardware needs upgrade (OS, DB). Outdated OS on desktops and laptops. Data vulnerability. No strong IT policy. Data security visibility gaps.",
+    priority_areas: "SAP upgrade, IT Policy, Data security for foreign companies",
+    budget_appetite: "High",
+    change_readiness: "High — Leadership is actively driving change",
+    founder_dependency: "Yes — financials are in founder's control",
+  },
+  pillars: [
+    { scores:[2,3,4,3], impacts:["High","High","Medium","High"],   priorities:["Critical","Medium","Low","Medium"],     notes:["No defined technology roadmap linked to business growth","","",""] },
+    { scores:[4,4,2,5], impacts:["Medium","High","High","High"],   priorities:["Low","Low","Critical","Low"],           notes:["","","SAP 1709 integration gaps",""] },
+    { scores:[3,3,1,2], impacts:["Medium","High","High","High"],   priorities:["Medium","Medium","Critical","Critical"], notes:["","","Operational reports fully manual","Teams stuck on repetitive low-value tasks"] },
+    { scores:[4,3,3,2], impacts:["Low","Medium","High","High"],    priorities:["Low","Medium","Medium","Critical"],      notes:["","","","No consistent KPIs across management"] },
+    { scores:[1,5,3,4], impacts:["Medium","Low","High","Low"],     priorities:["High","Low","Medium","Low"],            notes:["SOPs not documented or current","","",""] },
+    { scores:[3,2,1,4], impacts:["High","High","High","Medium"],   priorities:["Medium","Critical","Critical","Low"],   notes:["","User rights not controlled or reviewed","No MFA, device protection, or password discipline",""] },
+    { scores:[4,3,2,2], impacts:["High","High","High","Medium"],   priorities:["Low","Medium","Critical","High"],       notes:["","","Performance issues not monitored","Hardware and core assets not refreshed"] },
+    { scores:[5,5,3,4], impacts:["Low","Low","High","Low"],        priorities:["Low","Low","Medium","Low"],             notes:["","","Knowledge concentrated in a few people",""] },
+    { scores:[3,4,5,3], impacts:["Low","Low","Low","Low"],         priorities:["Medium","Low","Low","Medium"],          notes:["","","",""] },
+    { scores:[1,3,2,3], impacts:["High","High","High","High"],     priorities:["Critical","Medium","Critical","Medium"], notes:["Current setup cannot support growth","","No visibility into next stage of digital capability",""] },
+  ]
+};
 
-// Set today's date as default (only if nothing stored)
-if (!localStorage.getItem("granuler_form")) {
-  document.querySelector('[name="assessment_date"]').value = new Date().toISOString().split("T")[0];
+function loadDemoDefaults() {
+  for (const [k, v] of Object.entries(DEMO_DEFAULTS.intake)) {
+    const el = document.querySelector(`[name="${k}"]`);
+    if (el) el.value = v;
+  }
+  DEMO_DEFAULTS.pillars.forEach((state, pi) => {
+    state.scores.forEach((score, si) => setScore(pi, si, score));
+    state.impacts.forEach((impact, si) => { const el = document.getElementById(`impact-${pi}-${si}`); if (el) el.value = impact; });
+    state.priorities.forEach((priority, si) => { const el = document.getElementById(`priority-${pi}-${si}`); if (el) el.value = priority; });
+    state.notes.forEach((note, si) => { const el = document.getElementById(`notes-${pi}-${si}`); if (el) el.value = note; });
+  });
+  saveToStorage();
 }
 
-loadFromStorage();
+buildPillars();
+loadDemoDefaults();
 
 // Save on any intake field change
 document.getElementById("assessmentForm").addEventListener("input", saveToStorage);
