@@ -11,7 +11,6 @@ with open(_config_path) as f:
 _MODEL = _cfg["model"]
 _MAX_TOKENS = _cfg["max_tokens"]
 _TEMPERATURE = _cfg["temperature"]
-_API_KEY = _cfg.get("api_key") or None
 
 
 def _extract_json(text: str) -> dict:
@@ -25,15 +24,12 @@ def _extract_json(text: str) -> dict:
 
 
 def _call(prompt: str) -> dict:
-    kwargs = dict(
+    resp = completion(
         model=_MODEL,
         messages=[{"role": "user", "content": prompt + "\n\nRespond with raw JSON only. No markdown, no code fences."}],
         max_tokens=_MAX_TOKENS,
         temperature=_TEMPERATURE,
     )
-    if _API_KEY:
-        kwargs["api_key"] = _API_KEY
-    resp = completion(**kwargs)
     return _extract_json(resp.choices[0].message.content)
 
 

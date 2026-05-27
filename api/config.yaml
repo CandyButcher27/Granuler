@@ -1,5 +1,4 @@
 model: "gemini/gemini-2.5-flash"
-
 max_tokens: 2048
 temperature: 0.3
 pillar_count: 10
