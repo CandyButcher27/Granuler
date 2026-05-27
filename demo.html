@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Granuler — Technology Maturity Assessment</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f4f6f9;
+    color: #1a1a2e;
+    font-size: 14px;
+  }
+
+  header {
+    background: #0d1b3e;
+    color: white;
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  header .logo { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #c9a84c; }
+  header .tagline { font-size: 12px; color: #8899bb; margin-top: 2px; }
+  header .spacer { flex: 1; }
+  header .badge { background: #1e3a6e; color: #8ab4f8; padding: 4px 12px; border-radius: 20px; font-size: 11px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  .page-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; color: #0d1b3e; }
+  .page-subtitle { color: #666; margin-bottom: 32px; }
+
+  .section-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .section-header {
+    background: #0d1b3e;
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-header .num {
+    background: #c9a84c;
+    color: #0d1b3e;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+    flex-shrink: 0;
+  }
+  .section-header h2 { font-size: 15px; font-weight: 600; }
+  .section-body { padding: 24px; }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .field-grid.wide { grid-template-columns: 1fr 1fr; }
+  .field-full { grid-column: 1 / -1; }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 5px;
+  }
+  .field label .req { color: #e05252; }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    border: 1.5px solid #dde3ef;
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #1a1a2e;
+    transition: border-color 0.15s;
+    background: #fafbfd;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: #1e3a8a;
+    background: white;
+  }
+  .field textarea { resize: vertical; min-height: 72px; }
+
+  /* Pillars */
+  .pillar-block {
+    border: 1.5px solid #e8ecf5;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .pillar-header {
+    background: #f0f4ff;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .pillar-header:hover { background: #e5ebff; }
+  .pillar-num {
+    background: #1e3a8a;
+    color: white;
+    width: 22px; height: 22px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .pillar-name { font-weight: 600; font-size: 13px; flex: 1; }
+  .pillar-score-badge {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pillar-toggle { color: #888; font-size: 12px; }
+
+  .pillar-body { padding: 0 18px 18px; }
+
+  table.subtopic-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  table.subtopic-table th {
+    background: #f8f9ff;
+    color: #555;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 2px solid #e8ecf5;
+  }
+  table.subtopic-table td {
+    padding: 10px;
+    border-bottom: 1px solid #f0f2f8;
+    vertical-align: middle;
+  }
+  table.subtopic-table tr:last-child td { border-bottom: none; }
+  table.subtopic-table .subtopic-name { font-size: 13px; font-weight: 500; color: #1a1a2e; min-width: 180px; }
+
+  .score-buttons { display: flex; gap: 4px; }
+  .score-btn {
+    width: 30px; height: 30px;
+    border: 1.5px solid #dde3ef;
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    transition: all 0.12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .score-btn:hover { border-color: #1e3a8a; color: #1e3a8a; }
+  .score-btn.active { background: #1e3a8a; border-color: #1e3a8a; color: white; }
+  .score-btn.s1.active { background: #dc2626; border-color: #dc2626; }
+  .score-btn.s2.active { background: #ea580c; border-color: #ea580c; }
+  .score-btn.s3.active { background: #ca8a04; border-color: #ca8a04; }
+  .score-btn.s4.active { background: #16a34a; border-color: #16a34a; }
+  .score-btn.s5.active { background: #0d6efd; border-color: #0d6efd; }
+
+  .impact-select, .priority-select {
+    border: 1.5px solid #dde3ef;
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    background: #fafbfd;
+    color: #333;
+    cursor: pointer;
+  }
+  .notes-input {
+    border: 1.5px solid #dde3ef;
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    width: 100%;
+    min-width: 180px;
+    background: #fafbfd;
+    color: #333;
+  }
+  .notes-input:focus { outline: none; border-color: #1e3a8a; }
+
+  /* Submit area */
+  .submit-area {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    padding: 28px 32px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .submit-area .info { flex: 1; }
+  .submit-area .info strong { font-size: 16px; display: block; margin-bottom: 4px; }
+  .submit-area .info span { color: #666; font-size: 13px; }
+
+  #generateBtn {
+    background: #c9a84c;
+    color: #0d1b3e;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 32px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  #generateBtn:hover { background: #b8962e; transform: translateY(-1px); }
+  #generateBtn:active { transform: translateY(0); }
+  #generateBtn:disabled { background: #ccc; color: #888; cursor: not-allowed; transform: none; }
+
+  #statusBox {
+    display: none;
+    margin-top: 12px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  #statusBox.loading { background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; }
+  #statusBox.success { background: #f0fdf4; color: #166534; border: 1.5px solid #bbf7d0; }
+  #statusBox.error   { background: #fef2f2; color: #991b1b; border: 1.5px solid #fecaca; }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid #bfdbfe;
+    border-top-color: #1d4ed8;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .score-legend {
+    display: flex; gap: 12px; align-items: center;
+    font-size: 11px; color: #888;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .score-legend span { display: flex; align-items: center; gap: 4px; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">GRANULER</div>
+    <div class="tagline">Strategic Technology Advisory</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="badge">Technology Maturity Assessment</div>
+</header>
+
+<div class="container">
+  <div class="page-title">New Client Assessment</div>
+  <div class="page-subtitle">Complete the client intake and discovery checklist, then generate the branded report in one click.</div>
+
+  <form id="assessmentForm">
+
+    <!-- SECTION 1: Client Intake -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="num">1</div>
+        <h2>Client Intake</h2>
+      </div>
+      <div class="section-body">
+        <div class="field-grid">
+          <div class="field">
+            <label>Company Name <span class="req">*</span></label>
+            <input type="text" name="company_name" placeholder="e.g. Acme Technologies" required>
+          </div>
+          <div class="field">
+            <label>Industry</label>
+            <input type="text" name="industry" placeholder="e.g. Manufacturing, Retail, FinTech">
+          </div>
+          <div class="field">
+            <label>Assessment Date</label>
+            <input type="date" name="assessment_date">
+          </div>
+          <div class="field">
+            <label>Assessor</label>
+            <input type="text" name="assessor" value="Ravi Kajaria">
+          </div>
+          <div class="field">
+            <label>Revenue Range</label>
+            <select name="revenue_range">
+              <option value="">Select...</option>
+              <option>Under ₹10 Cr</option>
+              <option>₹10–50 Cr</option>
+              <option>₹50–200 Cr</option>
+              <option>₹200 Cr+</option>
+              <option>Under $1M</option>
+              <option>$1M–$10M</option>
+              <option>$10M–$50M</option>
+              <option>$50M+</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Employee Count</label>
+            <input type="text" name="employee_count" placeholder="e.g. 150">
+          </div>
+          <div class="field">
+            <label>Locations</label>
+            <input type="text" name="locations" placeholder="e.g. Mumbai HQ, Delhi, Bangalore">
+          </div>
+          <div class="field">
+            <label>Key Stakeholders Interviewed</label>
+            <input type="text" name="key_stakeholders" placeholder="e.g. CEO, CFO, IT Manager">
+          </div>
+          <div class="field field-full">
+            <label>Main Business Goals (12 months)</label>
+            <textarea name="business_goals" placeholder="e.g. Expand to international markets, improve operational efficiency, reduce manual reporting..."></textarea>
+          </div>
+          <div class="field field-full">
+            <label>Current Pain Points</label>
+            <textarea name="pain_points" placeholder="e.g. Manual reporting, outdated ERP, cybersecurity gaps, no single source of truth for data..."></textarea>
+          </div>
+          <div class="field field-full">
+            <label>Core Systems in Use</label>
+            <textarea name="core_systems" placeholder="e.g. Tally ERP, Zoho CRM, Google Workspace, Excel-based inventory..." style="min-height:56px"></textarea>
+          </div>
+          <div class="field">
+            <label>Major Risks Already Visible</label>
+            <textarea name="major_risks" placeholder="e.g. No disaster recovery, single point of failure in IT..." style="min-height:56px"></textarea>
+          </div>
+          <div class="field">
+            <label>Immediate Priority Areas</label>
+            <textarea name="priority_areas" placeholder="e.g. Cybersecurity, ERP upgrade, data dashboards..." style="min-height:56px"></textarea>
+          </div>
+          <div class="field">
+            <label>Budget / Investment Appetite</label>
+            <input type="text" name="budget_appetite" placeholder="e.g. ₹25L for Year 1, open to phased investment">
+          </div>
+          <div class="field">
+            <label>Change Readiness</label>
+            <select name="change_readiness">
+              <option value="">Select...</option>
+              <option>High — Leadership is actively driving change</option>
+              <option>Medium — Willing but cautious</option>
+              <option>Low — Resistance to change expected</option>
+            </select>
+          </div>
+          <div class="field field-full">
+            <label>Founder Dependency Notes</label>
+            <textarea name="founder_dependency" placeholder="e.g. Founder approves all IT decisions personally, no delegation in place..." style="min-height:56px"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Discovery Checklist -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="num">2</div>
+        <h2>Discovery Checklist — 10 Pillars × 4 Subtopics</h2>
+      </div>
+      <div class="section-body">
+        <div class="score-legend">
+          <strong style="color:#333">Score guide:</strong>
+          <span><span class="dot" style="background:#dc2626"></span> 1 — Critical gap</span>
+          <span><span class="dot" style="background:#ea580c"></span> 2 — Below baseline</span>
+          <span><span class="dot" style="background:#ca8a04"></span> 3 — Basic / partial</span>
+          <span><span class="dot" style="background:#16a34a"></span> 4 — Managed</span>
+          <span><span class="dot" style="background:#0d6efd"></span> 5 — Optimised</span>
+        </div>
+        <div id="pillarsContainer"></div>
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-area" id="submitArea">
+      <div class="info">
+        <strong>Generate Assessment Report</strong>
+        <span>AI generates narrative content → fills 54-slide branded PPTX → downloads instantly</span>
+        <div id="statusBox"></div>
+      </div>
+      <button type="submit" id="generateBtn">
+        ⚡ Generate Report
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+const PILLARS = [
+  {
+    name: "IT Strategy Alignment",
+    subtopics: [
+      "IT Roadmap & Vision",
+      "Business-IT Alignment",
+      "IT Governance Structure",
+      "Technology Investment Planning"
+    ]
+  },
+  {
+    name: "Systems & Application Landscape",
+    subtopics: [
+      "Core Business Systems Coverage",
+      "Application Integration",
+      "Legacy System Management",
+      "SaaS / Cloud Adoption"
+    ]
+  },
+  {
+    name: "Process Automation",
+    subtopics: [
+      "Workflow Automation Maturity",
+      "RPA / AI Tool Adoption",
+      "Manual Process Dependency",
+      "Automation ROI Tracking"
+    ]
+  },
+  {
+    name: "Data Quality & Reporting",
+    subtopics: [
+      "Data Accuracy & Completeness",
+      "Reporting & Dashboards",
+      "Data Governance",
+      "Analytics Capability"
+    ]
+  },
+  {
+    name: "Compliance & Governance",
+    subtopics: [
+      "Regulatory Compliance",
+      "IT Policy Framework",
+      "Audit Readiness",
+      "Data Privacy & GDPR/DPDP"
+    ]
+  },
+  {
+    name: "Cybersecurity & Risk",
+    subtopics: [
+      "Endpoint Security",
+      "Access Control & IAM",
+      "Incident Response Readiness",
+      "Security Awareness Training"
+    ]
+  },
+  {
+    name: "Infrastructure & Reliability",
+    subtopics: [
+      "System Uptime & Availability",
+      "Disaster Recovery & Backup",
+      "Network Infrastructure",
+      "Cloud / On-Prem Strategy"
+    ]
+  },
+  {
+    name: "User Adoption & Training",
+    subtopics: [
+      "Technology Training Programs",
+      "User Satisfaction & Feedback",
+      "Change Management Process",
+      "Digital Skills Development"
+    ]
+  },
+  {
+    name: "Vendor & IT Spend Control",
+    subtopics: [
+      "Vendor Management",
+      "IT Budget Visibility",
+      "Contract Management",
+      "Cost Optimisation"
+    ]
+  },
+  {
+    name: "Scalability & Future Readiness",
+    subtopics: [
+      "Technology Scalability",
+      "Innovation Culture",
+      "Emerging Tech Readiness",
+      "Digital Transformation Maturity"
+    ]
+  }
+];
+
+const scores = {};
+
+function buildPillars() {
+  const container = document.getElementById("pillarsContainer");
+  PILLARS.forEach((pillar, pi) => {
+    const block = document.createElement("div");
+    block.className = "pillar-block";
+    block.innerHTML = `
+      <div class="pillar-header" onclick="togglePillar(${pi})">
+        <div class="pillar-num">${pi + 1}</div>
+        <div class="pillar-name">${pillar.name}</div>
+        <div class="pillar-score-badge" id="badge-${pi}">— / 10</div>
+        <div class="pillar-toggle" id="toggle-${pi}">▼</div>
+      </div>
+      <div class="pillar-body" id="pillar-body-${pi}" style="display:${pi === 0 ? 'block' : 'none'}">
+        <table class="subtopic-table">
+          <thead>
+            <tr>
+              <th>Subtopic</th>
+              <th>Score</th>
+              <th>Impact</th>
+              <th>Priority</th>
+              <th>Current State Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pillar.subtopics.map((sub, si) => buildSubtopicRow(pi, si, sub)).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+    container.appendChild(block);
+    pillar.subtopics.forEach((_, si) => setScore(pi, si, 3));
+  });
+}
+
+function buildSubtopicRow(pi, si, name) {
+  return `
+    <tr>
+      <td class="subtopic-name">${name}</td>
+      <td>
+        <div class="score-buttons">
+          ${[1,2,3,4,5].map(v => `<button type="button" class="score-btn s${v}" id="sb-${pi}-${si}-${v}" onclick="setScore(${pi},${si},${v})">${v}</button>`).join("")}
+        </div>
+      </td>
+      <td>
+        <select class="impact-select" id="impact-${pi}-${si}">
+          <option>High</option>
+          <option selected>Medium</option>
+          <option>Low</option>
+        </select>
+      </td>
+      <td>
+        <select class="priority-select" id="priority-${pi}-${si}">
+          <option>High</option>
+          <option selected>Medium</option>
+          <option>Low</option>
+        </select>
+      </td>
+      <td><input class="notes-input" type="text" id="notes-${pi}-${si}" placeholder="Add observations..."></td>
+    </tr>
+  `;
+}
+
+function setScore(pi, si, val) {
+  if (!scores[pi]) scores[pi] = {};
+  scores[pi][si] = val;
+  for (let v = 1; v <= 5; v++) {
+    const btn = document.getElementById(`sb-${pi}-${si}-${v}`);
+    if (btn) btn.classList.toggle("active", v === val);
+  }
+  updateBadge(pi);
+}
+
+function updateBadge(pi) {
+  const pillar = PILLARS[pi];
+  let total = 0, count = 0;
+  pillar.subtopics.forEach((_, si) => {
+    if (scores[pi] && scores[pi][si] !== undefined) {
+      total += scores[pi][si];
+      count++;
+    }
+  });
+  const badge = document.getElementById(`badge-${pi}`);
+  if (badge && count > 0) {
+    const pillarScore = (total / (count * 5)) * 10;
+    badge.textContent = pillarScore.toFixed(1) + " / 10";
+    badge.style.background = pillarScore >= 7 ? "#dcfce7" : pillarScore >= 5 ? "#fef9c3" : "#fee2e2";
+    badge.style.color = pillarScore >= 7 ? "#166534" : pillarScore >= 5 ? "#854d0e" : "#991b1b";
+  }
+}
+
+function togglePillar(pi) {
+  const body = document.getElementById(`pillar-body-${pi}`);
+  const tog = document.getElementById(`toggle-${pi}`);
+  const open = body.style.display !== "none";
+  body.style.display = open ? "none" : "block";
+  tog.textContent = open ? "▼" : "▲";
+}
+
+function buildPayload(form) {
+  const fd = new FormData(form);
+  const today = new Date().toISOString().split("T")[0];
+
+  const pillarsData = PILLARS.map((pillar, pi) => ({
+    pillar: pillar.name,
+    subtopics: pillar.subtopics.map((sub, si) => ({
+      subtopic: sub,
+      score: (scores[pi] && scores[pi][si]) || 3,
+      weighted_marks: 0,
+      impact: document.getElementById(`impact-${pi}-${si}`)?.value || "Medium",
+      priority: document.getElementById(`priority-${pi}-${si}`)?.value || "Medium",
+      current_state_notes: document.getElementById(`notes-${pi}-${si}`)?.value || "",
+      evidence: "",
+      recommended_action: "",
+      owner: "",
+      timeline: ""
+    }))
+  }));
+
+  return {
+    company_name: fd.get("company_name") || "Client Company",
+    industry: fd.get("industry") || "",
+    assessment_date: fd.get("assessment_date") || today,
+    assessor: fd.get("assessor") || "Ravi Kajaria",
+    business_goals: fd.get("business_goals") || "",
+    pain_points: fd.get("pain_points") || "",
+    revenue_range: fd.get("revenue_range") || "",
+    employee_count: fd.get("employee_count") || "",
+    locations: fd.get("locations") || "",
+    core_systems: fd.get("core_systems") || "",
+    major_risks: fd.get("major_risks") || "",
+    key_stakeholders: fd.get("key_stakeholders") || "",
+    priority_areas: fd.get("priority_areas") || "",
+    budget_appetite: fd.get("budget_appetite") || "",
+    change_readiness: fd.get("change_readiness") || "",
+    founder_dependency: fd.get("founder_dependency") || "",
+    pillars: pillarsData
+  };
+}
+
+function showStatus(type, msg) {
+  const box = document.getElementById("statusBox");
+  box.style.display = "block";
+  box.className = type;
+  box.innerHTML = type === "loading"
+    ? `<span class="spinner"></span>${msg}`
+    : msg;
+}
+
+document.getElementById("assessmentForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("generateBtn");
+  btn.disabled = true;
+  btn.textContent = "⏳ Generating...";
+  showStatus("loading", "Calling AI to generate report content — this takes 20–40 seconds...");
+
+  const payload = buildPayload(e.target);
+
+  try {
+    const resp = await fetch("http://localhost:8000/generate-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      throw new Error(`API returned ${resp.status}: ${err}`);
+    }
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const company = payload.company_name.replace(/\s+/g, "_");
+    a.download = `${company}_Granuler_Assessment.pptx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showStatus("success", `✅ Report generated and downloaded — <strong>${company}_Granuler_Assessment.pptx</strong>`);
+  } catch (err) {
+    showStatus("error", `❌ ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "⚡ Generate Report";
+  }
+});
+
+buildPillars();
+
+// Set today's date as default
+document.querySelector('[name="assessment_date"]').value = new Date().toISOString().split("T")[0];
+</script>
+</body>
+</html>
