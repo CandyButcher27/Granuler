@@ -3,7 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
-from .llm import generate_pillar_content, generate_global_content
+from .llm import (
+    generate_pillar_content,
+    generate_global_content,
+    generate_narrative_content,
+    generate_quick_wins,
+    generate_risk_register,
+    generate_proposal,
+)
 from .pptx_generator import (
     generate_report,
     _calc_pillar_score,
@@ -102,11 +109,25 @@ def generate(req: ReportRequest):
         for i, p in enumerate(pillars_raw)
     ]
 
+    worst = min(pillar_summaries, key=lambda p: p["score"])
+    worst_pillar_raw = next(p for p in pillars_raw if p["pillar"] == worst["name"])
+    llm_narrative = generate_narrative_content(
+        company_name=req.company_name,
+        industry=req.industry,
+        business_goals=req.business_goals,
+        pain_points=req.pain_points,
+        pillar_summaries=pillar_summaries,
+        worst_pillar_name=worst["name"],
+        worst_pillar_score=worst["score"],
+        worst_pillar_subtopics=worst_pillar_raw["subtopics"],
+    )
+
     pptx_bytes = generate_report(
         intake=intake,
         pillars=pillars_raw,
         llm_global=llm_global,
         llm_pillars=llm_pillars,
+        llm_narrative=llm_narrative,
     )
 
     filename = f"{req.company_name.replace(' ', '_')}_Granuler_Assessment.pptx"
@@ -115,3 +136,63 @@ def generate(req: ReportRequest):
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+def _parse_request(req: ReportRequest):
+    pillars_raw = [p.model_dump() for p in req.pillars]
+    intake = req.model_dump(exclude={"pillars"})
+    pillar_summaries = [
+        {"name": p["pillar"], "score": _calc_pillar_score(p["subtopics"], SUBTOPICS_PER_PILLAR)}
+        for p in pillars_raw
+    ]
+    overall_score = _calc_overall_score(pillars_raw, SUBTOPICS_PER_PILLAR)
+    maturity_band = _calc_maturity_band(overall_score)
+    return pillars_raw, intake, pillar_summaries, overall_score, maturity_band
+
+
+@app.post("/generate-quick-wins")
+def quick_wins(req: ReportRequest):
+    if len(req.pillars) != PILLAR_COUNT:
+        raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
+    pillars_raw, _, _, _, _ = _parse_request(req)
+    result = generate_quick_wins(
+        company_name=req.company_name,
+        industry=req.industry,
+        business_goals=req.business_goals,
+        pain_points=req.pain_points,
+        pillars=pillars_raw,
+    )
+    return {"company_name": req.company_name, **result}
+
+
+@app.post("/generate-risk-register")
+def risk_register(req: ReportRequest):
+    if len(req.pillars) != PILLAR_COUNT:
+        raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
+    pillars_raw, _, _, _, _ = _parse_request(req)
+    result = generate_risk_register(
+        company_name=req.company_name,
+        industry=req.industry,
+        pillars=pillars_raw,
+    )
+    return {"company_name": req.company_name, **result}
+
+
+@app.post("/generate-proposal")
+def proposal(req: ReportRequest):
+    if len(req.pillars) != PILLAR_COUNT:
+        raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
+    pillars_raw, _, pillar_summaries, overall_score, maturity_band = _parse_request(req)
+    result = generate_proposal(
+        company_name=req.company_name,
+        industry=req.industry,
+        overall_score=overall_score,
+        maturity_band=maturity_band,
+        business_goals=req.business_goals,
+        pain_points=req.pain_points,
+        major_risks=req.major_risks,
+        founder_dependency=req.founder_dependency,
+        budget_appetite=req.budget_appetite,
+        pillar_summaries=pillar_summaries,
+    )
+    return {"company_name": req.company_name, **result}
