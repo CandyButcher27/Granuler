@@ -267,6 +267,86 @@
   }
   .score-legend span { display: flex; align-items: center; gap: 4px; }
   .dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Deliverables section */
+  .deliverables-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .deliverable-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .deliverable-card .d-icon { font-size: 28px; }
+  .deliverable-card .d-title { font-size: 15px; font-weight: 700; color: #0d1b3e; }
+  .deliverable-card .d-desc { font-size: 12px; color: #666; line-height: 1.5; flex: 1; }
+  .d-btn {
+    border: none; border-radius: 7px; padding: 10px 16px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s; display: flex; align-items: center; gap: 6px;
+  }
+  .d-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .d-btn-qw  { background: #dbeafe; color: #1e40af; }
+  .d-btn-qw:hover:not(:disabled)  { background: #bfdbfe; }
+  .d-btn-rr  { background: #fce7f3; color: #9d174d; }
+  .d-btn-rr:hover:not(:disabled)  { background: #fbcfe8; }
+  .d-btn-pr  { background: #d1fae5; color: #065f46; }
+  .d-btn-pr:hover:not(:disabled)  { background: #a7f3d0; }
+
+  .d-status { font-size: 12px; min-height: 18px; }
+  .d-status.loading { color: #1d4ed8; }
+  .d-status.error   { color: #991b1b; }
+
+  /* Output panels */
+  .output-panel {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+    overflow: hidden;
+    display: none;
+  }
+  .output-panel.visible { display: block; }
+  .output-header {
+    background: #0d1b3e; color: white;
+    padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 14px; font-weight: 600;
+  }
+  .output-body { padding: 20px; }
+
+  /* Quick wins output */
+  .qw-category { margin-bottom: 20px; }
+  .qw-category h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #1e3a8a; margin-bottom: 10px; }
+  .qw-item { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; padding: 10px 12px; background: #f8f9ff; border-radius: 6px; }
+  .qw-item .qw-timeline { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+  .qw-item .qw-impact-high { background: #fee2e2; color: #991b1b; }
+  .qw-item .qw-impact-med  { background: #fef9c3; color: #854d0e; }
+  .qw-item .qw-action { font-size: 13px; }
+
+  /* Risk register output */
+  .risk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .risk-table th { background: #f0f4ff; color: #1e3a8a; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 8px 12px; text-align: left; border-bottom: 2px solid #e8ecf5; }
+  .risk-table td { padding: 10px 12px; border-bottom: 1px solid #f0f2f8; vertical-align: top; }
+  .urgency-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .u-critical { background: #fee2e2; color: #991b1b; }
+  .u-high     { background: #ffedd5; color: #9a3412; }
+  .u-medium   { background: #fef9c3; color: #854d0e; }
+
+  /* Proposal output */
+  .proposal-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f0f2f8; }
+  .proposal-section:last-child { border-bottom: none; margin-bottom: 0; }
+  .proposal-section h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #0d1b3e; margin-bottom: 8px; }
+  .proposal-section p { font-size: 13px; line-height: 1.7; color: #333; }
+  .proposal-cta { background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 14px 18px; }
+  .proposal-cta p { color: #166534; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -409,6 +489,62 @@
     </div>
 
   </form>
+
+  <!-- SECTION 3: Additional Deliverables -->
+  <div style="margin-top:8px; margin-bottom:12px;">
+    <div class="page-title" style="font-size:18px; margin-bottom:4px;">Additional Deliverables</div>
+    <div class="page-subtitle">Fill the form above first, then generate any of these independently.</div>
+  </div>
+
+  <div class="deliverables-grid">
+    <div class="deliverable-card">
+      <div class="d-icon">⚡</div>
+      <div class="d-title">Quick Wins Report</div>
+      <div class="d-desc">High-impact actions achievable in 30–60 days, grouped by Process, Controls, Reporting, and Automation.</div>
+      <button class="d-btn d-btn-qw" id="qwBtn" onclick="generateDeliverable('quick-wins')">Generate Quick Wins</button>
+      <div class="d-status" id="qwStatus"></div>
+    </div>
+    <div class="deliverable-card">
+      <div class="d-icon">🛡️</div>
+      <div class="d-title">Risk Register</div>
+      <div class="d-desc">Full risk register from the discovery checklist — risk statement, business impact, root cause, urgency, and mitigation for each gap.</div>
+      <button class="d-btn d-btn-rr" id="rrBtn" onclick="generateDeliverable('risk-register')">Generate Risk Register</button>
+      <div class="d-status" id="rrStatus"></div>
+    </div>
+    <div class="deliverable-card">
+      <div class="d-icon">📋</div>
+      <div class="d-title">CIO Advisory Proposal</div>
+      <div class="d-desc">Full fractional CIO engagement proposal — why now, scope, cadence, expected outcomes, and success measures.</div>
+      <button class="d-btn d-btn-pr" id="prBtn" onclick="generateDeliverable('proposal')">Generate Proposal</button>
+      <div class="d-status" id="prStatus"></div>
+    </div>
+  </div>
+
+  <!-- Output panels (hidden until generated) -->
+  <div class="output-panel" id="panel-quick-wins">
+    <div class="output-header">
+      <span>⚡ Quick Wins Report — <span id="qw-company"></span></span>
+      <span style="font-size:11px;opacity:0.7">Generated by AI</span>
+    </div>
+    <div class="output-body" id="qw-body"></div>
+  </div>
+
+  <div class="output-panel" id="panel-risk-register">
+    <div class="output-header">
+      <span>🛡️ Risk Register — <span id="rr-company"></span></span>
+      <span style="font-size:11px;opacity:0.7">Generated by AI</span>
+    </div>
+    <div class="output-body" id="rr-body"></div>
+  </div>
+
+  <div class="output-panel" id="panel-proposal">
+    <div class="output-header">
+      <span>📋 CIO Advisory Proposal — <span id="pr-company"></span></span>
+      <span style="font-size:11px;opacity:0.7">Generated by AI</span>
+    </div>
+    <div class="output-body" id="pr-body"></div>
+  </div>
+
 </div>
 
 <script>
@@ -698,6 +834,115 @@ buildPillars();
 
 // Set today's date as default
 document.querySelector('[name="assessment_date"]').value = new Date().toISOString().split("T")[0];
+
+// ---- Additional Deliverables ----
+
+const DELIVERABLE_CONFIG = {
+  "quick-wins":     { btn: "qwBtn", status: "qwStatus", panel: "panel-quick-wins",    endpoint: "/generate-quick-wins",    label: "Generating quick wins..." },
+  "risk-register":  { btn: "rrBtn", status: "rrStatus", panel: "panel-risk-register", endpoint: "/generate-risk-register", label: "Building risk register..." },
+  "proposal":       { btn: "prBtn", status: "prStatus", panel: "panel-proposal",       endpoint: "/generate-proposal",      label: "Drafting proposal..." },
+};
+
+async function generateDeliverable(type) {
+  const cfg = DELIVERABLE_CONFIG[type];
+  const btn = document.getElementById(cfg.btn);
+  const status = document.getElementById(cfg.status);
+  const panel = document.getElementById(cfg.panel);
+
+  btn.disabled = true;
+  status.className = "d-status loading";
+  status.innerHTML = `<span class="spinner"></span>${cfg.label}`;
+
+  const payload = buildPayload(document.getElementById("assessmentForm"));
+
+  try {
+    const resp = await fetch(`http://localhost:8000${cfg.endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) throw new Error(`API returned ${resp.status}: ${await resp.text()}`);
+    const data = await resp.json();
+
+    panel.classList.add("visible");
+
+    if (type === "quick-wins")    renderQuickWins(data);
+    if (type === "risk-register") renderRiskRegister(data);
+    if (type === "proposal")      renderProposal(data);
+
+    status.className = "d-status";
+    status.innerHTML = "✅ Done";
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (err) {
+    status.className = "d-status error";
+    status.innerHTML = `❌ ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderQuickWins(data) {
+  document.getElementById("qw-company").textContent = data.company_name;
+  const body = document.getElementById("qw-body");
+  const categories = [
+    { key: "process",   label: "Process & Workflow" },
+    { key: "controls",  label: "Controls & Governance" },
+    { key: "reporting", label: "Reporting & Visibility" },
+    { key: "automation",label: "Systems & Automation" },
+  ];
+  body.innerHTML = categories.map(cat => {
+    const items = data[cat.key] || [];
+    if (!items.length) return "";
+    const rows = items.map(w => `
+      <div class="qw-item">
+        <span class="qw-timeline ${w.impact === 'High' ? 'qw-impact-high' : 'qw-impact-med'}">${w.impact}</span>
+        <span class="qw-timeline" style="background:#e0e7ff;color:#3730a3">${w.timeline || ''}</span>
+        <span class="qw-action">${w.action}</span>
+      </div>`).join("");
+    return `<div class="qw-category"><h4>${cat.label}</h4>${rows}</div>`;
+  }).join("");
+}
+
+function renderRiskRegister(data) {
+  document.getElementById("rr-company").textContent = data.company_name;
+  const body = document.getElementById("rr-body");
+  const risks = data.risks || [];
+  const rows = risks.map(r => {
+    const u = (r.urgency || "").toLowerCase();
+    const cls = u === "critical" ? "u-critical" : u === "high" ? "u-high" : "u-medium";
+    return `<tr>
+      <td><span class="urgency-badge ${cls}">${r.urgency}</span></td>
+      <td style="font-weight:500">${r.risk_statement}</td>
+      <td style="color:#555">${r.pillar}</td>
+      <td>${r.business_impact}</td>
+      <td style="color:#666;font-size:12px">${r.root_cause}</td>
+      <td style="color:#166534;font-size:12px">${r.mitigation}</td>
+    </tr>`;
+  }).join("");
+  body.innerHTML = `<table class="risk-table">
+    <thead><tr><th>Urgency</th><th>Risk</th><th>Pillar</th><th>Business Impact</th><th>Root Cause</th><th>Mitigation</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderProposal(data) {
+  document.getElementById("pr-company").textContent = data.company_name;
+  const body = document.getElementById("pr-body");
+  const sections = [
+    { key: "engagement_title", label: "Engagement Title" },
+    { key: "why_now",          label: "Why Now" },
+    { key: "scope",            label: "Scope of Work" },
+    { key: "cadence",          label: "Engagement Cadence" },
+    { key: "outcomes",         label: "Expected Outcomes" },
+    { key: "success_measures", label: "Success Measures" },
+    { key: "cta",              label: "Next Step", highlight: true },
+  ];
+  body.innerHTML = sections.map(s => `
+    <div class="proposal-section ${s.highlight ? 'proposal-cta' : ''}">
+      <h4>${s.label}</h4>
+      <p>${data[s.key] || ""}</p>
+    </div>`).join("");
+}
 </script>
 </body>
 </html>
