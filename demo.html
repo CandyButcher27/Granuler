@@ -713,6 +713,42 @@ function setScore(pi, si, val) {
     if (btn) btn.classList.toggle("active", v === val);
   }
   updateBadge(pi);
+  saveToStorage();
+}
+
+function saveToStorage() {
+  try {
+    const fd = new FormData(document.getElementById("assessmentForm"));
+    const intake = {};
+    for (const [k, v] of fd.entries()) intake[k] = v;
+    const pillarsState = PILLARS.map((p, pi) => ({
+      scores: p.subtopics.map((_, si) => (scores[pi] && scores[pi][si]) || 3),
+      impacts: p.subtopics.map((_, si) => document.getElementById(`impact-${pi}-${si}`)?.value || "Medium"),
+      priorities: p.subtopics.map((_, si) => document.getElementById(`priority-${pi}-${si}`)?.value || "Medium"),
+      notes: p.subtopics.map((_, si) => document.getElementById(`notes-${pi}-${si}`)?.value || ""),
+    }));
+    localStorage.setItem("granuler_form", JSON.stringify({ intake, pillars: pillarsState }));
+  } catch (e) {}
+}
+
+function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem("granuler_form");
+    if (!saved) return;
+    const { intake, pillars } = JSON.parse(saved);
+    for (const [k, v] of Object.entries(intake)) {
+      const el = document.querySelector(`[name="${k}"]`);
+      if (el) el.value = v;
+    }
+    if (pillars) {
+      pillars.forEach((state, pi) => {
+        state.scores.forEach((score, si) => setScore(pi, si, score));
+        state.impacts.forEach((impact, si) => { const el = document.getElementById(`impact-${pi}-${si}`); if (el) el.value = impact; });
+        state.priorities.forEach((priority, si) => { const el = document.getElementById(`priority-${pi}-${si}`); if (el) el.value = priority; });
+        state.notes.forEach((note, si) => { const el = document.getElementById(`notes-${pi}-${si}`); if (el) el.value = note; });
+      });
+    }
+  } catch (e) {}
 }
 
 function updateBadge(pi) {
@@ -832,8 +868,16 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
 
 buildPillars();
 
-// Set today's date as default
-document.querySelector('[name="assessment_date"]').value = new Date().toISOString().split("T")[0];
+// Set today's date as default (only if nothing stored)
+if (!localStorage.getItem("granuler_form")) {
+  document.querySelector('[name="assessment_date"]').value = new Date().toISOString().split("T")[0];
+}
+
+loadFromStorage();
+
+// Save on any intake field change
+document.getElementById("assessmentForm").addEventListener("input", saveToStorage);
+document.getElementById("assessmentForm").addEventListener("change", saveToStorage);
 
 // ---- Additional Deliverables ----
 
