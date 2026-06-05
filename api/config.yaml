@@ -1,4 +1,4 @@
-model: "groq/llama-3.3-70b-versatile"
+model: "groq/llama-3.1-8b-instant"
 max_tokens: 4096
 temperature: 0.3
 pillar_count: 10
