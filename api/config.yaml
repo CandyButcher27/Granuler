@@ -1,4 +1,4 @@
-model: "gemini/gemini-2.5-flash"
+model: "groq/llama-3.3-70b-versatile"
 max_tokens: 4096
 temperature: 0.3
 pillar_count: 10
