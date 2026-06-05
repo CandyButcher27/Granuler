@@ -36,13 +36,16 @@ def _call(prompt: str) -> dict:
         messages=[{"role": "user", "content": prompt + "\n\nRespond with raw JSON only. No markdown, no code fences."}],
         max_tokens=_MAX_TOKENS,
         temperature=_TEMPERATURE,
+        response_format={"type": "json_object"},
     )
     if _API_KEY:
         kwargs["api_key"] = _API_KEY
     for attempt in range(5):
         try:
             resp = completion(**kwargs)
-            return _extract_json(resp.choices[0].message.content)
+            raw = resp.choices[0].message.content
+            print(f"[LLM RAW] {repr(raw[:200])}", flush=True)
+            return _extract_json(raw)
         except Exception as e:
             if "429" in str(e) and attempt < 4:
                 time.sleep(15 * (attempt + 1))
