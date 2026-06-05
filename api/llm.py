@@ -22,7 +22,12 @@ def _extract_json(text: str) -> dict:
         if text.startswith("json"):
             text = text[4:]
         text = text.rsplit("```", 1)[0]
-    return json.loads(text.strip())
+    text = text.strip()
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    if start != -1 and end > start:
+        text = text[start:end]
+    return json.loads(text)
 
 
 def _call(prompt: str) -> dict:
