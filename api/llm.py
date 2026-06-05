@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import yaml
 from pathlib import Path
 from litellm import completion
@@ -33,8 +34,15 @@ def _call(prompt: str) -> dict:
     )
     if _API_KEY:
         kwargs["api_key"] = _API_KEY
-    resp = completion(**kwargs)
-    return _extract_json(resp.choices[0].message.content)
+    for attempt in range(5):
+        try:
+            resp = completion(**kwargs)
+            return _extract_json(resp.choices[0].message.content)
+        except Exception as e:
+            if "429" in str(e) and attempt < 4:
+                time.sleep(15 * (attempt + 1))
+            else:
+                raise
 
 
 def generate_pillar_content(
