@@ -76,11 +76,11 @@ Subtopic breakdown:
 Write concise, professional content for a consulting slide deck. Be specific to the data provided.
 
 Return JSON with exactly these keys:
-- observation: 2-3 sentences describing the current state based on the scores and notes
-- business_impact: 1-2 sentences on what this means for the business
-- rec1: one specific, actionable recommendation (1 sentence)
-- rec2: one specific, actionable recommendation (1 sentence)
-- rec3: one specific, actionable recommendation (1 sentence)"""
+- observation: max 2 short sentences (under 30 words total) describing current state
+- business_impact: exactly 1 sentence (under 20 words) on business consequence
+- rec1: one action (under 12 words, start with a verb)
+- rec2: one action (under 12 words, start with a verb)
+- rec3: one action (under 12 words, start with a verb)"""
     return _call(prompt)
 
 
