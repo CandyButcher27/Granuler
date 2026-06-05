@@ -846,7 +846,7 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
   const payload = buildPayload(e.target);
 
   try {
-    const resp = await fetch("http://localhost:8000/generate-report", {
+    const resp = await fetch("https://web-production-8cfb4.up.railway.app/generate-report", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -950,7 +950,7 @@ async function generateDeliverable(type) {
   const payload = buildPayload(document.getElementById("assessmentForm"));
 
   try {
-    const resp = await fetch(`http://localhost:8000${cfg.endpoint}`, {
+    const resp = await fetch(`https://web-production-8cfb4.up.railway.app${cfg.endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
