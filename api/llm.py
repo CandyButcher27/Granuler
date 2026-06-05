@@ -4,6 +4,7 @@ import time
 import yaml
 from pathlib import Path
 from litellm import completion
+from litellm.exceptions import RateLimitError
 
 _config_path = Path(__file__).parent / "config.yaml"
 with open(_config_path) as f:
@@ -46,11 +47,13 @@ def _call(prompt: str) -> dict:
             raw = resp.choices[0].message.content
             print(f"[LLM RAW] {repr(raw[:200])}", flush=True)
             return _extract_json(raw)
-        except Exception as e:
-            if "429" in str(e) and attempt < 4:
+        except RateLimitError:
+            if attempt < 4:
                 time.sleep(15 * (attempt + 1))
             else:
                 raise
+        except Exception:
+            raise
 
 
 def generate_pillar_content(
