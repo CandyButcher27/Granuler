@@ -7,6 +7,7 @@ from pathlib import Path
 
 from pptx import Presentation
 from pptx.util import Pt
+from pptx.enum.text import MSO_AUTO_SIZE
 
 import yaml as _yaml
 
@@ -26,15 +27,15 @@ def _set_text(shape, text: str):
     tf = shape.text_frame
     if not tf.paragraphs:
         return
-    # Use first paragraph, first run as formatting reference
+    tf.word_wrap = True
+    tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
+
     para = tf.paragraphs[0]
     ref_run = para.runs[0] if para.runs else None
 
-    # Clear all paragraphs
     for p in tf.paragraphs[1:]:
         p._p.getparent().remove(p._p)
 
-    # Clear runs in first paragraph
     for r in para.runs[1:]:
         r._r.getparent().remove(r._r)
 
