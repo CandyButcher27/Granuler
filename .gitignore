@@ -21,7 +21,7 @@ dist/
 *_Granuler_Assessment.pptx
 
 # Test artifacts
-test_output.pptx
+*.pptx
 
 # Claude / personal
 CLAUDE.md
