@@ -1,6 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
 from .llm import (
@@ -66,6 +68,14 @@ class ReportRequest(BaseModel):
     change_readiness: str = ""
     founder_dependency: str = ""
     pillars: list[PillarIn]
+
+
+DEMO_HTML_PATH = Path(__file__).resolve().parent.parent / "demo.html"
+
+
+@app.get("/")
+def demo():
+    return FileResponse(DEMO_HTML_PATH)
 
 
 @app.get("/health")
