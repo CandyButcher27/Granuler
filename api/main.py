@@ -24,6 +24,21 @@ from .pptx_generator import (
 
 app = FastAPI(title="Granuler Report API")
 
+# Client identity is never sent to the LLM. Prompts use this placeholder;
+# _restore_name() swaps it back to the real company name in the LLM's JSON
+# response before it reaches the deck or the API caller.
+_LLM_CLIENT_LABEL = "the client company"
+
+
+def _restore_name(obj, company_name: str):
+    if isinstance(obj, str):
+        return obj.replace(_LLM_CLIENT_LABEL, company_name)
+    if isinstance(obj, list):
+        return [_restore_name(v, company_name) for v in obj]
+    if isinstance(obj, dict):
+        return {k: _restore_name(v, company_name) for k, v in obj.items()}
+    return obj
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -99,30 +114,30 @@ def generate(req: ReportRequest):
         for p in pillars_raw
     ]
 
-    llm_global = generate_global_content(
-        company_name=req.company_name,
+    llm_global = _restore_name(generate_global_content(
+        company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         overall_score=overall_score,
         maturity_band=maturity_band,
         business_goals=req.business_goals,
         pain_points=req.pain_points,
         pillar_summaries=pillar_summaries,
-    )
+    ), req.company_name)
 
     llm_pillars = [
-        generate_pillar_content(
-            company_name=req.company_name,
+        _restore_name(generate_pillar_content(
+            company_name=_LLM_CLIENT_LABEL,
             pillar_name=p["pillar"],
             pillar_score=pillar_summaries[i]["score"],
             subtopics=p["subtopics"],
-        )
+        ), req.company_name)
         for i, p in enumerate(pillars_raw)
     ]
 
     worst = min(pillar_summaries, key=lambda p: p["score"])
     worst_pillar_raw = next(p for p in pillars_raw if p["pillar"] == worst["name"])
-    llm_narrative = generate_narrative_content(
-        company_name=req.company_name,
+    llm_narrative = _restore_name(generate_narrative_content(
+        company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         business_goals=req.business_goals,
         pain_points=req.pain_points,
@@ -130,7 +145,7 @@ def generate(req: ReportRequest):
         worst_pillar_name=worst["name"],
         worst_pillar_score=worst["score"],
         worst_pillar_subtopics=worst_pillar_raw["subtopics"],
-    )
+    ), req.company_name)
 
     pptx_bytes = generate_report(
         intake=intake,
@@ -165,13 +180,13 @@ def quick_wins(req: ReportRequest):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
     pillars_raw, _, _, _, _ = _parse_request(req)
-    result = generate_quick_wins(
-        company_name=req.company_name,
+    result = _restore_name(generate_quick_wins(
+        company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         business_goals=req.business_goals,
         pain_points=req.pain_points,
         pillars=pillars_raw,
-    )
+    ), req.company_name)
     return {"company_name": req.company_name, **result}
 
 
@@ -180,11 +195,11 @@ def risk_register(req: ReportRequest):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
     pillars_raw, _, _, _, _ = _parse_request(req)
-    result = generate_risk_register(
-        company_name=req.company_name,
+    result = _restore_name(generate_risk_register(
+        company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         pillars=pillars_raw,
-    )
+    ), req.company_name)
     return {"company_name": req.company_name, **result}
 
 
@@ -193,8 +208,8 @@ def proposal(req: ReportRequest):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
     pillars_raw, _, pillar_summaries, overall_score, maturity_band = _parse_request(req)
-    result = generate_proposal(
-        company_name=req.company_name,
+    result = _restore_name(generate_proposal(
+        company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         overall_score=overall_score,
         maturity_band=maturity_band,
@@ -204,5 +219,5 @@ def proposal(req: ReportRequest):
         founder_dependency=req.founder_dependency,
         budget_appetite=req.budget_appetite,
         pillar_summaries=pillar_summaries,
-    )
+    ), req.company_name)
     return {"company_name": req.company_name, **result}

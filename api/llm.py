@@ -34,7 +34,7 @@ def _extract_json(text: str) -> dict:
 def _call(prompt: str) -> dict:
     kwargs = dict(
         model=_MODEL,
-        messages=[{"role": "user", "content": prompt + "\n\nRespond with raw JSON only. No markdown, no code fences."}],
+        messages=[{"role": "user", "content": prompt + "\n\nRespond with raw JSON only. No markdown, no code fences. Refer to the company using the exact phrase \"the client company\" every time — never invent, abbreviate, or vary it."}],
         max_tokens=_MAX_TOKENS,
         temperature=_TEMPERATURE,
         response_format={"type": "json_object"},
