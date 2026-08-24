@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -28,11 +29,13 @@ app = FastAPI(title="Granuler Report API")
 # _restore_name() swaps it back to the real company name in the LLM's JSON
 # response before it reaches the deck or the API caller.
 _LLM_CLIENT_LABEL = "the client company"
+# Case-insensitive: the LLM capitalises the placeholder at sentence start.
+_LLM_CLIENT_RE = re.compile(re.escape(_LLM_CLIENT_LABEL), re.IGNORECASE)
 
 
 def _restore_name(obj, company_name: str):
     if isinstance(obj, str):
-        return obj.replace(_LLM_CLIENT_LABEL, company_name)
+        return _LLM_CLIENT_RE.sub(lambda _: company_name, obj)
     if isinstance(obj, list):
         return [_restore_name(v, company_name) for v in obj]
     if isinstance(obj, dict):
