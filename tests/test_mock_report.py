@@ -1,11 +1,11 @@
 """
-Run:  .venv\Scripts\python test_mock_report.py
-Generates Uni-tech_Automation_Granuler_Assessment.pptx without any API calls.
+Run:  .venv\Scripts\python tests\test_mock_report.py
+Generates outputs/Uni-tech_Automation_Granuler_Assessment.pptx without any API calls.
 """
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.pptx_generator import generate_report, _calc_pillar_score, _calc_overall_score, _calc_maturity_band
 
@@ -274,6 +274,8 @@ if __name__ == "__main__":
         llm_narrative=LLM_NARRATIVE,
     )
 
-    out = Path("Uni-tech_Automation_Granuler_Assessment.pptx")
+    out_dir = Path(__file__).parent.parent / "outputs"
+    out_dir.mkdir(exist_ok=True)
+    out = out_dir / "Uni-tech_Automation_Granuler_Assessment.pptx"
     out.write_bytes(pptx_bytes)
     print(f"Saved → {out.resolve()}")
