@@ -22,6 +22,10 @@ dist/
 
 # Test artifacts
 *.pptx
+# ...but never the branded master template: it must ship to the deployed
+# container. `railway up` honours these patterns, so a bare *.pptx strips it
+# from the upload and /generate-report 500s with PackageNotFoundError.
+!assets/granuler_template.pptx
 
 # Claude / personal
 CLAUDE.md
