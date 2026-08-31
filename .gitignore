@@ -35,3 +35,14 @@ test_pptx.py
 GOAL.md
 MISTAKES.md
 memory/
+
+# Generated artifacts. `*.pptx` above only caught the decks; the smoke run also
+# writes PDFs and JSON here. Directory rule, not an extension glob - a bare
+# *.pdf would also strip a future runtime asset from the deploy upload.
+outputs/
+
+# Client discovery data and screenshots. Confidential to Ravi's clients and not
+# needed at runtime - tests/smoke_live.py takes the notes path as an argument.
+pictures/
+Nihaar equipments Notes.txt
+SESSION_SUMMARY.md
