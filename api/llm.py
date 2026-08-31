@@ -171,6 +171,49 @@ Return JSON with exactly these keys:
     return _call(prompt)
 
 
+_QW_IMPACT = {"critical": "High", "high": "High", "medium": "Medium", "low": "Medium"}
+_QW_TIMELINE = {"0-30 days", "31-60 days"}
+_QW_CATEGORIES = ("process", "controls", "reporting", "automation")
+
+
+def _normalise_quick_wins(result: dict) -> dict:
+    """Flatten the two effort buckets back to the flat shape the UI renders.
+
+    The prompt asks for {"immediate": [...], "short_term": [...]} per category
+    rather than a free-text "timeline" field on each item. Told to label a flat
+    list, gpt-4o-mini put every one of 12 items in "31-60 days" across repeated
+    runs, no matter how the instruction was phrased - the label carried no
+    structural weight. A key it has to populate does.
+
+    Output shape is unchanged for demo.html and pdf_generator: a flat list per
+    category, each item carrying action/impact/timeline. Impact is clamped to
+    the two values the panel has styles for - it drifted to "Critical", which
+    renders as an unstyled badge.
+    """
+    for category in _QW_CATEGORIES:
+        block = result.get(category)
+        if isinstance(block, dict):
+            buckets = [("immediate", "0-30 days"), ("short_term", "31-60 days")]
+        else:
+            # Older/flat response: keep the items, trust their own timeline.
+            block = {"immediate": [], "short_term": block or []}
+            buckets = [("immediate", "0-30 days"), ("short_term", "31-60 days")]
+
+        flat = []
+        for key, timeline in buckets:
+            for item in block.get(key) or []:
+                if not isinstance(item, dict):
+                    continue
+                existing = str(item.get("timeline", "")).strip()
+                flat.append({
+                    "action": item.get("action", ""),
+                    "impact": _QW_IMPACT.get(str(item.get("impact", "")).strip().lower(), "Medium"),
+                    "timeline": existing if existing in _QW_TIMELINE else timeline,
+                })
+        result[category] = flat
+    return result
+
+
 def generate_quick_wins(
     company_name: str,
     industry: str,
@@ -194,14 +237,35 @@ Pain Points: {pain_points}
 High-priority checklist items (score ≤3 or Critical/High priority):
 {checklist}
 
-Return JSON with exactly these keys:
-process: list of objects with "action" (1 sentence), "impact" ("High"/"Medium"), "timeline" ("0-30 days"/"31-60 days") — process and workflow quick wins
-controls: list of objects same shape — governance, policy, security quick wins
-reporting: list of objects same shape — reporting, visibility, data quick wins
-automation: list of objects same shape — system and automation quick wins
+Return JSON with exactly these four keys: process, controls, reporting, automation.
+  process    - process and workflow quick wins
+  controls   - governance, policy and security quick wins
+  reporting  - reporting, visibility and data quick wins
+  automation - system and automation quick wins
 
-Each list should have 2-4 items. Only include realistic 30-60 day actions. Be specific to {company_name}'s actual pain points."""
-    return _call(prompt)
+Each of the four is an OBJECT with exactly two keys, both of which you must populate:
+
+  "immediate":  list of exactly 2 objects. Actions achievable in the first 30 days with the
+                people and tools ALREADY in place - no procurement, no vendor selection, no
+                new system. Documenting a process, assigning a named owner, restricting
+                access to a folder, running a baseline stock count, testing a backup
+                restore, agreeing one KPI definition, listing current tool usage.
+                If a category's real work needs a new tool, "immediate" holds the
+                preparation for it: write the requirement, audit current usage, name the
+                decision owner. There is ALWAYS a 30-day first step. Never return an empty
+                "immediate" list.
+
+  "short_term": list of exactly 2 objects. Actions needing a tool chosen, configured or
+                rolled out, or a cross-team change. 31-60 days.
+
+Every object in both lists has exactly two keys:
+  "action" - 1 sentence, specific to this company
+  "impact" - the exact string "High" or "Medium". No other value is permitted; not
+             "Critical", not "Low". Use "High" only where the checklist above marks the
+             gap Critical or High priority.
+
+Be specific to {company_name}'s actual pain points above - never generic advice."""
+    return _normalise_quick_wins(_call(prompt))
 
 
 def generate_risk_register(
