@@ -587,3 +587,66 @@ value_intro: 1-2 sentences on value delivered before roadmap execution began.
 value_stats: list of exactly 3 objects with "value" (max 6 characters), "label" (2-4 words) and
   "description" (one short phrase, max 12 words). Use only figures true from the input above."""
     return _call(prompt)
+
+
+PILLAR_DEFINITIONS: list[dict] = _cfg.get("pillars", [])
+
+
+def extract_from_notes(company_name: str, notes: str) -> dict:
+    """Turn freeform discovery notes into intake fields and proposed scores.
+
+    Replaces the manual step of transposing notes into 17 fields and 40
+    checklist rows by hand. Everything it returns is a proposal the assessor
+    reviews and overrides in the form.
+
+    `notes` reaches the LLM with the company name already masked by the caller.
+    """
+    checklist = "\n".join(
+        f"{pillar_index + 1}. {pillar['name']}\n"
+        + "\n".join(f"   {pillar_index + 1}.{i + 1} {sub}" for i, sub in enumerate(pillar["subtopics"]))
+        for pillar_index, pillar in enumerate(PILLAR_DEFINITIONS)
+    )
+    prompt = f"""You are a technology assessment analyst. Read the discovery notes below and
+extract them into a structured assessment for {company_name}.
+
+DISCOVERY NOTES:
+\"\"\"
+{notes}
+\"\"\"
+
+ASSESSMENT CHECKLIST - score every one of these {len(PILLAR_DEFINITIONS)} pillars and their subtopics:
+{checklist}
+
+GROUNDING RULES:
+- Extract only what the notes actually say. Do not infer facts that are not there.
+- Leave an intake field as an empty string if the notes do not cover it.
+- Never introduce a system, vendor, location or figure the notes do not mention.
+
+SCORING SCALE (1-5, where 1 is worst):
+1 = absent or entirely manual; 2 = minimal, ad hoc; 3 = partially in place;
+4 = largely in place and working; 5 = mature and well governed.
+Where the notes give no evidence for a subtopic, score it 3 and set "why" to
+"No evidence in the notes - please review."
+
+Return JSON with exactly two keys:
+
+intake: object with these string keys, filled from the notes where covered and
+  "" where not: industry, business_goals, pain_points, revenue_range,
+  employee_count, locations, core_systems, major_risks, key_stakeholders,
+  priority_areas, budget_appetite, change_readiness, founder_dependency,
+  products, industries_served.
+  - key_stakeholders: use ROLE TITLES only (e.g. "Owner, Production Manager, QC
+    Head"). Do NOT include any person's name.
+  - revenue_range and employee_count: only if the notes state a figure.
+  - change_readiness: one of "High", "Medium", "Low" plus a short reason, or "".
+
+pillars: list of exactly {len(PILLAR_DEFINITIONS)} objects, in the checklist order above, each with:
+  - "pillar": the pillar name exactly as written in the checklist
+  - "subtopics": list of exactly {len(PILLAR_DEFINITIONS[0]['subtopics']) if PILLAR_DEFINITIONS else 4} objects, in checklist order, each with:
+      "subtopic": the subtopic name exactly as written
+      "score": integer 1-5
+      "impact": "High", "Medium" or "Low"
+      "priority": "Critical", "High", "Medium" or "Low"
+      "current_state_notes": one short phrase from the notes evidencing the score, or ""
+      "why": one short sentence naming what in the notes led to this score"""
+    return _call(prompt)

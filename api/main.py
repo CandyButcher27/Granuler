@@ -21,6 +21,7 @@ from .llm import (
     generate_roadmap_content,
     generate_closing_content,
     generate_prior_work_content,
+    extract_from_notes,
 )
 from .pdf_generator import RENDERERS as PDF_RENDERERS
 from .pptx_generator import (
@@ -250,6 +251,51 @@ def _deliverable_response(kind: str, company_name: str, result: dict, fmt: str):
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+class NotesRequest(BaseModel):
+    notes: str
+    company_name: str
+
+
+def _mask_company(text: str, company_name: str) -> str:
+    """Replace the client's name in freeform notes with the LLM placeholder.
+
+    The settled rule is that the client's company name never reaches the LLM.
+    Notes extraction has to send the notes body, so the name is masked here
+    first: the full name, then each distinctive word of it, longest first so a
+    multi-word name is not left half-substituted.
+
+    Person names in the notes are NOT masked - there is no reliable detector
+    for them. The frontend states this above the notes box so the choice is the
+    assessor's, made knowingly.
+    """
+    tokens = [company_name] + [
+        word for word in re.split(r"\W+", company_name) if len(word) > 3
+    ]
+    for token in sorted(set(tokens), key=len, reverse=True):
+        text = re.sub(
+            rf"(?<![\w]){re.escape(token)}(?![\w])", _LLM_CLIENT_LABEL, text, flags=re.IGNORECASE
+        )
+    return text
+
+
+@app.post("/extract-from-notes")
+def extract_notes(req: NotesRequest):
+    if not req.notes.strip():
+        raise HTTPException(status_code=422, detail="notes must not be empty")
+    if not req.company_name.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="company_name is required so it can be masked before the notes are sent",
+        )
+
+    masked = _mask_company(req.notes, req.company_name)
+    result = _restore_name(
+        extract_from_notes(company_name=_LLM_CLIENT_LABEL, notes=masked),
+        req.company_name,
+    )
+    return {"company_name": req.company_name, **result}
 
 
 class RenderPdfRequest(BaseModel):
