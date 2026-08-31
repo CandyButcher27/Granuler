@@ -2,7 +2,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
@@ -22,6 +22,7 @@ from .llm import (
     generate_closing_content,
     generate_prior_work_content,
 )
+from .pdf_generator import RENDERERS as PDF_RENDERERS
 from .pptx_generator import (
     generate_report,
     _calc_pillar_score,
@@ -237,6 +238,45 @@ def generate(req: ReportRequest):
     )
 
 
+def _deliverable_response(kind: str, company_name: str, result: dict, fmt: str):
+    """JSON by default so the existing HTML output panels keep working."""
+    if fmt != "pdf":
+        return {"company_name": company_name, **result}
+
+    render, label = PDF_RENDERERS[kind]
+    filename = f"{company_name.replace(' ', '_')}_{label}.pdf"
+    return Response(
+        content=render(company_name, result),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+class RenderPdfRequest(BaseModel):
+    kind: str
+    company_name: str
+    data: dict
+
+
+@app.post("/render-pdf")
+def render_pdf(req: RenderPdfRequest):
+    """Render an already-generated deliverable to PDF. No LLM call.
+
+    The frontend holds the JSON it just displayed, so downloading a PDF of it
+    must not re-run generation: that would cost another 20-40s and another set
+    of tokens, and could return different text from what is on screen.
+    """
+    if req.kind not in PDF_RENDERERS:
+        raise HTTPException(status_code=422, detail=f"Unknown deliverable {req.kind!r}")
+    render, label = PDF_RENDERERS[req.kind]
+    filename = f"{req.company_name.replace(' ', '_')}_{label}.pdf"
+    return Response(
+        content=render(req.company_name, req.data),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 def _parse_request(req: ReportRequest):
     pillars_raw = [p.model_dump() for p in req.pillars]
     intake = req.model_dump(exclude={"pillars"})
@@ -250,7 +290,7 @@ def _parse_request(req: ReportRequest):
 
 
 @app.post("/generate-quick-wins")
-def quick_wins(req: ReportRequest):
+def quick_wins(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
     pillars_raw, _, _, _, _ = _parse_request(req)
@@ -261,11 +301,11 @@ def quick_wins(req: ReportRequest):
         pain_points=req.pain_points,
         pillars=pillars_raw,
     ), req.company_name)
-    return {"company_name": req.company_name, **result}
+    return _deliverable_response("quick-wins", req.company_name, result, format)
 
 
 @app.post("/generate-risk-register")
-def risk_register(req: ReportRequest):
+def risk_register(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
     pillars_raw, _, _, _, _ = _parse_request(req)
@@ -274,11 +314,11 @@ def risk_register(req: ReportRequest):
         industry=req.industry,
         pillars=pillars_raw,
     ), req.company_name)
-    return {"company_name": req.company_name, **result}
+    return _deliverable_response("risk-register", req.company_name, result, format)
 
 
 @app.post("/generate-proposal")
-def proposal(req: ReportRequest):
+def proposal(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
     pillars_raw, _, pillar_summaries, overall_score, maturity_band = _parse_request(req)
@@ -294,4 +334,4 @@ def proposal(req: ReportRequest):
         budget_appetite=req.budget_appetite,
         pillar_summaries=pillar_summaries,
     ), req.company_name)
-    return {"company_name": req.company_name, **result}
+    return _deliverable_response("proposal", req.company_name, result, format)
