@@ -1,4 +1,5 @@
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -13,6 +14,13 @@ from .llm import (
     generate_quick_wins,
     generate_risk_register,
     generate_proposal,
+    generate_company_context,
+    generate_architecture_content,
+    generate_findings_content,
+    generate_conditional_content,
+    generate_roadmap_content,
+    generate_closing_content,
+    generate_prior_work_content,
 )
 from .pptx_generator import (
     generate_report,
@@ -85,6 +93,14 @@ class ReportRequest(BaseModel):
     budget_appetite: str = ""
     change_readiness: str = ""
     founder_dependency: str = ""
+    products: str = ""
+    industries_served: str = ""
+    granuler_location: str = "Mumbai"
+    savings_identified: str = ""
+    # Work Granuler has already delivered for this client. Empty for a new
+    # client, which drops the three "progress delivered" slides from the deck
+    # rather than have the LLM invent a track record.
+    prior_work: str = ""
     pillars: list[PillarIn]
 
 
@@ -117,45 +133,100 @@ def generate(req: ReportRequest):
         for p in pillars_raw
     ]
 
-    llm_global = _restore_name(generate_global_content(
-        company_name=_LLM_CLIENT_LABEL,
-        industry=req.industry,
-        overall_score=overall_score,
-        maturity_band=maturity_band,
-        business_goals=req.business_goals,
-        pain_points=req.pain_points,
-        pillar_summaries=pillar_summaries,
-    ), req.company_name)
-
-    llm_pillars = [
-        _restore_name(generate_pillar_content(
-            company_name=_LLM_CLIENT_LABEL,
-            pillar_name=p["pillar"],
-            pillar_score=pillar_summaries[i]["score"],
-            subtopics=p["subtopics"],
-        ), req.company_name)
-        for i, p in enumerate(pillars_raw)
-    ]
-
     worst = min(pillar_summaries, key=lambda p: p["score"])
     worst_pillar_raw = next(p for p in pillars_raw if p["pillar"] == worst["name"])
-    llm_narrative = _restore_name(generate_narrative_content(
+
+    # Shared by every prompt that needs the client's situation.
+    ctx = dict(
         company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         business_goals=req.business_goals,
         pain_points=req.pain_points,
-        pillar_summaries=pillar_summaries,
-        worst_pillar_name=worst["name"],
-        worst_pillar_score=worst["score"],
-        worst_pillar_subtopics=worst_pillar_raw["subtopics"],
-    ), req.company_name)
+        core_systems=req.core_systems,
+        major_risks=req.major_risks,
+    )
+
+    # 17-18 LLM calls fill this deck. Run sequentially that is 60-90s; fanned
+    # out over threads the wall clock is roughly the slowest single call.
+    # litellm.completion is blocking HTTP, so threads are the right primitive.
+    jobs: dict[str, tuple] = {
+        "global": (generate_global_content, dict(
+            company_name=_LLM_CLIENT_LABEL,
+            industry=req.industry,
+            overall_score=overall_score,
+            maturity_band=maturity_band,
+            business_goals=req.business_goals,
+            pain_points=req.pain_points,
+            pillar_summaries=pillar_summaries,
+        )),
+        "narrative": (generate_narrative_content, dict(
+            company_name=_LLM_CLIENT_LABEL,
+            industry=req.industry,
+            business_goals=req.business_goals,
+            pain_points=req.pain_points,
+            pillar_summaries=pillar_summaries,
+            worst_pillar_name=worst["name"],
+            worst_pillar_score=worst["score"],
+            worst_pillar_subtopics=worst_pillar_raw["subtopics"],
+        )),
+        "context": (generate_company_context, dict(
+            **ctx,
+            locations=req.locations,
+            products=req.products,
+            industries_served=req.industries_served,
+            overall_score=overall_score,
+            maturity_band=maturity_band,
+        )),
+        "architecture": (generate_architecture_content, dict(**ctx, maturity_band=maturity_band)),
+        "findings": (generate_findings_content, dict(**ctx, pillars=pillars_raw)),
+        "conditional": (generate_conditional_content, dict(**ctx, pillars=pillars_raw)),
+        "roadmap": (generate_roadmap_content, dict(
+            **ctx, priority_areas=req.priority_areas, pillar_summaries=pillar_summaries,
+        )),
+        "closing": (generate_closing_content, dict(
+            **ctx,
+            overall_score=overall_score,
+            maturity_band=maturity_band,
+            savings_identified=req.savings_identified,
+        )),
+    }
+    if req.prior_work.strip():
+        jobs["prior_work"] = (generate_prior_work_content, dict(
+            company_name=_LLM_CLIENT_LABEL,
+            industry=req.industry,
+            prior_work=req.prior_work,
+            savings_identified=req.savings_identified,
+        ))
+
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        futures = {name: pool.submit(fn, **kwargs) for name, (fn, kwargs) in jobs.items()}
+        # Index the pillar futures so results keep their pillar order.
+        pillar_futures = [
+            pool.submit(
+                generate_pillar_content,
+                company_name=_LLM_CLIENT_LABEL,
+                pillar_name=p["pillar"],
+                pillar_score=pillar_summaries[i]["score"],
+                subtopics=p["subtopics"],
+            )
+            for i, p in enumerate(pillars_raw)
+        ]
+        results = {name: _restore_name(f.result(), req.company_name) for name, f in futures.items()}
+        llm_pillars = [_restore_name(f.result(), req.company_name) for f in pillar_futures]
 
     pptx_bytes = generate_report(
         intake=intake,
         pillars=pillars_raw,
-        llm_global=llm_global,
+        llm_global=results["global"],
         llm_pillars=llm_pillars,
-        llm_narrative=llm_narrative,
+        llm_narrative=results["narrative"],
+        llm_context=results["context"],
+        llm_architecture=results["architecture"],
+        llm_findings=results["findings"],
+        llm_conditional=results["conditional"],
+        llm_roadmap=results["roadmap"],
+        llm_closing=results["closing"],
+        llm_prior_work=results.get("prior_work"),
     )
 
     filename = f"{req.company_name.replace(' ', '_')}_Granuler_Assessment.pptx"
