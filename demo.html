@@ -347,6 +347,65 @@
   .proposal-section p { font-size: 13px; line-height: 1.7; color: #333; }
   .proposal-cta { background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 14px 18px; }
   .proposal-cta p { color: #166534; font-weight: 500; }
+
+  /* Session toolbar */
+  .session-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: white; border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    padding: 12px 18px; margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .session-bar .sb-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #0d1b3e; margin-right: 4px; }
+  .sb-btn {
+    border: 1.5px solid #dde3ef; background: #fafbfd; color: #1a1a2e;
+    border-radius: 7px; padding: 8px 14px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .sb-btn:hover { border-color: #1e3a8a; background: #f0f4ff; color: #1e3a8a; }
+  .sb-btn.danger:hover { border-color: #dc2626; background: #fef2f2; color: #991b1b; }
+  .sb-spacer { flex: 1; }
+  .sb-status { font-size: 12px; color: #888; }
+  .sb-status.ok { color: #166534; }
+  .sb-status.err { color: #991b1b; }
+
+  /* Working notes pane */
+  .notes-pane textarea {
+    width: 100%; min-height: 260px;
+    border: 1.5px solid #dde3ef; border-radius: 8px;
+    padding: 14px 16px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px; line-height: 1.6; color: #1a1a2e;
+    background: #fafbfd; resize: vertical;
+  }
+  .notes-pane textarea:focus { outline: none; border-color: #1e3a8a; background: white; }
+  .notes-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .notes-privacy {
+    font-size: 11.5px; color: #854d0e;
+    background: #fef9c3; border: 1px solid #fde68a; border-radius: 6px;
+    padding: 8px 12px; margin-bottom: 12px; line-height: 1.5;
+  }
+  #analyseBtn {
+    background: #1e3a8a; color: white; border: none; border-radius: 7px;
+    padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  #analyseBtn:hover:not(:disabled) { background: #1a3170; }
+  #analyseBtn:disabled { background: #ccc; color: #888; cursor: not-allowed; }
+  .notes-hint { font-size: 11.5px; color: #888; }
+
+  /* Inferred-from-notes marker */
+  .inferred { background: #fffbeb !important; border-color: #fcd34d !important; }
+  .why-note { font-size: 11px; color: #92400e; margin-top: 3px; font-style: italic; }
+
+  /* PDF download button on output panels */
+  .pdf-btn {
+    background: rgba(255,255,255,0.15); color: white;
+    border: 1px solid rgba(255,255,255,0.35); border-radius: 6px;
+    padding: 5px 12px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  }
+  .pdf-btn:hover:not(:disabled) { background: rgba(255,255,255,0.28); }
+  .pdf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -364,12 +423,44 @@
   <div class="page-title">New Client Assessment</div>
   <div class="page-subtitle">Complete the client intake and discovery checklist, then generate the branded report in one click.</div>
 
+  <div class="session-bar">
+    <span class="sb-label">Session</span>
+    <button type="button" class="sb-btn" onclick="saveSessionFile()">💾 Save to file</button>
+    <button type="button" class="sb-btn" onclick="document.getElementById('sessionFile').click()">📂 Load from file</button>
+    <input type="file" id="sessionFile" accept=".md,.txt,.json" style="display:none" onchange="loadSessionFile(this)">
+    <button type="button" class="sb-btn danger" onclick="clearSession()">🗑 Clear form</button>
+    <div class="sb-spacer"></div>
+    <span class="sb-status" id="sessionStatus">Autosaving to this browser</span>
+  </div>
+
   <form id="assessmentForm">
 
-    <!-- SECTION 1: Client Intake -->
-    <div class="section-card">
+    <!-- SECTION 1: Working Notes -->
+    <div class="section-card notes-pane">
       <div class="section-header">
         <div class="num">1</div>
+        <h2>Working Notes</h2>
+      </div>
+      <div class="section-body">
+        <div class="notes-privacy">
+          <strong>Before you analyse:</strong> the notes below are sent to the AI with the company
+          name masked. <strong>Personal names in the notes are not masked.</strong> Remove them
+          first if that matters for this client.
+        </div>
+        <textarea id="workingNotes" placeholder="Paste or type your discovery notes here — meeting notes, pain points, systems in use, stakeholder comments. Kept with the assessment and saved to file. Click Analyse to auto-fill the intake and checklist below."></textarea>
+        <div class="notes-actions">
+          <button type="button" id="analyseBtn" onclick="analyseNotes()">✨ Analyse notes &amp; auto-fill</button>
+          <button type="button" class="sb-btn" onclick="document.getElementById('notesFile').click()">📄 Import notes file</button>
+          <input type="file" id="notesFile" accept=".txt,.md" style="display:none" onchange="importNotesFile(this)">
+          <span class="notes-hint" id="notesStatus">Requires a Company Name below.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Client Intake -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="num">2</div>
         <h2>Client Intake</h2>
       </div>
       <div class="section-body">
@@ -461,14 +552,34 @@
             <label>Founder Dependency Notes</label>
             <textarea name="founder_dependency" placeholder="e.g. Founder approves all IT decisions personally, no delegation in place..." style="min-height:56px"></textarea>
           </div>
+          <div class="field">
+            <label>Products / Services</label>
+            <textarea name="products" placeholder="e.g. Cold storage chambers, incubators, ovens, stability chambers..." style="min-height:56px"></textarea>
+          </div>
+          <div class="field">
+            <label>Industries Served</label>
+            <textarea name="industries_served" placeholder="e.g. Pharmaceutical, Biotech, Research Labs, Healthcare..." style="min-height:56px"></textarea>
+          </div>
+          <div class="field">
+            <label>Granuler Base Location</label>
+            <input type="text" name="granuler_location" value="Mumbai" placeholder="e.g. Mumbai">
+          </div>
+          <div class="field">
+            <label>Savings Already Identified <span class="notes-hint">(optional)</span></label>
+            <input type="text" name="savings_identified" placeholder="e.g. ₹10L — leave blank if none yet">
+          </div>
+          <div class="field field-full">
+            <label>Work Granuler Has Already Delivered <span class="notes-hint">(optional — leave blank for a new client; 3 progress slides are omitted when empty)</span></label>
+            <textarea name="prior_work" placeholder="e.g. Vendor benchmarking completed, ERP partner transitioned, performance issue resolved. Leave blank if the engagement has not started."></textarea>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- SECTION 2: Discovery Checklist -->
+    <!-- SECTION 3: Discovery Checklist -->
     <div class="section-card">
       <div class="section-header">
-        <div class="num">2</div>
+        <div class="num">3</div>
         <h2>Discovery Checklist — 10 Pillars × 4 Subtopics</h2>
       </div>
       <div class="section-body">
@@ -532,7 +643,7 @@
   <div class="output-panel" id="panel-quick-wins">
     <div class="output-header">
       <span>⚡ Quick Wins Report — <span id="qw-company"></span></span>
-      <span style="font-size:11px;opacity:0.7">Generated by AI</span>
+      <span style="display:flex;align-items:center;gap:10px"><span style="display:flex;align-items:center;gap:10px"><span style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;opacity:0.7">Generated by AI</span><button type="button" class="pdf-btn" onclick="downloadPdf('proposal', this)">⬇ Download PDF</button></span><button type="button" class="pdf-btn" onclick="downloadPdf('risk-register', this)">⬇ Download PDF</button></span><button type="button" class="pdf-btn" onclick="downloadPdf('quick-wins', this)">⬇ Download PDF</button></span>
     </div>
     <div class="output-body" id="qw-body"></div>
   </div>
@@ -556,6 +667,12 @@
 </div>
 
 <script>
+// Single source of truth for the API host. This page is served by the API itself at GET /,
+// so same-origin relative URLs are always correct. The literal below is only ever used when
+// the file is opened directly from disk. Never hardcode the host at a call site.
+const FALLBACK_API = "https://granuler-production.up.railway.app";
+const API_BASE = location.protocol === "file:" ? FALLBACK_API : "";
+
 const PILLARS = [
   {
     name: "IT Strategy Alignment",
@@ -725,18 +842,42 @@ function setScore(pi, si, val) {
   saveToStorage();
 }
 
+// ---- Session state ----
+
+function collectState() {
+  const fd = new FormData(document.getElementById("assessmentForm"));
+  const intake = {};
+  for (const [k, v] of fd.entries()) intake[k] = v;
+  const pillarsState = PILLARS.map((p, pi) => ({
+    scores: p.subtopics.map((_, si) => (scores[pi] && scores[pi][si]) || 3),
+    impacts: p.subtopics.map((_, si) => document.getElementById(`impact-${pi}-${si}`)?.value || "Medium"),
+    priorities: p.subtopics.map((_, si) => document.getElementById(`priority-${pi}-${si}`)?.value || "Medium"),
+    notes: p.subtopics.map((_, si) => document.getElementById(`notes-${pi}-${si}`)?.value || ""),
+  }));
+  return { intake, pillars: pillarsState, notes: document.getElementById("workingNotes").value };
+}
+
+function applyState(state) {
+  if (!state) return;
+  const { intake, pillars, notes } = state;
+  for (const [k, v] of Object.entries(intake || {})) {
+    const el = document.querySelector(`[name="${k}"]`);
+    if (el) el.value = v;
+  }
+  if (typeof notes === "string") document.getElementById("workingNotes").value = notes;
+  (pillars || []).forEach((st, pi) => {
+    (st.scores || []).forEach((score, si) => setScore(pi, si, score));
+    (st.impacts || []).forEach((v, si) => { const el = document.getElementById(`impact-${pi}-${si}`); if (el) el.value = v; });
+    (st.priorities || []).forEach((v, si) => { const el = document.getElementById(`priority-${pi}-${si}`); if (el) el.value = v; });
+    (st.notes || []).forEach((v, si) => { const el = document.getElementById(`notes-${pi}-${si}`); if (el) el.value = v; });
+  });
+  updateNotesStatus();
+}
+
 function saveToStorage() {
   try {
-    const fd = new FormData(document.getElementById("assessmentForm"));
-    const intake = {};
-    for (const [k, v] of fd.entries()) intake[k] = v;
-    const pillarsState = PILLARS.map((p, pi) => ({
-      scores: p.subtopics.map((_, si) => (scores[pi] && scores[pi][si]) || 3),
-      impacts: p.subtopics.map((_, si) => document.getElementById(`impact-${pi}-${si}`)?.value || "Medium"),
-      priorities: p.subtopics.map((_, si) => document.getElementById(`priority-${pi}-${si}`)?.value || "Medium"),
-      notes: p.subtopics.map((_, si) => document.getElementById(`notes-${pi}-${si}`)?.value || ""),
-    }));
-    localStorage.setItem("granuler_form", JSON.stringify({ intake, pillars: pillarsState }));
+    localStorage.setItem("granuler_form", JSON.stringify(collectState()));
+    setSessionStatus("Autosaved to this browser", "");
   } catch (e) {}
 }
 
@@ -744,20 +885,153 @@ function loadFromStorage() {
   try {
     const saved = localStorage.getItem("granuler_form");
     if (!saved) return;
-    const { intake, pillars } = JSON.parse(saved);
-    for (const [k, v] of Object.entries(intake)) {
-      const el = document.querySelector(`[name="${k}"]`);
-      if (el) el.value = v;
-    }
-    if (pillars) {
-      pillars.forEach((state, pi) => {
-        state.scores.forEach((score, si) => setScore(pi, si, score));
-        state.impacts.forEach((impact, si) => { const el = document.getElementById(`impact-${pi}-${si}`); if (el) el.value = impact; });
-        state.priorities.forEach((priority, si) => { const el = document.getElementById(`priority-${pi}-${si}`); if (el) el.value = priority; });
-        state.notes.forEach((note, si) => { const el = document.getElementById(`notes-${pi}-${si}`); if (el) el.value = note; });
-      });
-    }
+    applyState(JSON.parse(saved));
   } catch (e) {}
+}
+
+function setSessionStatus(msg, cls) {
+  const el = document.getElementById("sessionStatus");
+  el.textContent = msg;
+  el.className = "sb-status " + (cls || "");
+}
+
+function overallFromState(state) {
+  const pillarScores = state.pillars.map(p => (p.scores.reduce((a, b) => a + b, 0) / (p.scores.length * 5)) * 10);
+  return { pillarScores, overall: (pillarScores.reduce((a, b) => a + b, 0) / pillarScores.length) * 10 };
+}
+
+function bandFor(score) {
+  if (score < 40) return "At Risk Zone";
+  if (score < 60) return "Developing Zone";
+  if (score < 76) return "Managed Zone";
+  if (score < 90) return "Advanced Zone";
+  return "Leading Zone";
+}
+
+const INTAKE_LABELS = {
+  company_name: "Company Name", industry: "Industry", assessment_date: "Assessment Date",
+  assessor: "Assessor", revenue_range: "Revenue Range", employee_count: "Employee Count",
+  locations: "Locations", key_stakeholders: "Key Stakeholders", business_goals: "Business Goals",
+  pain_points: "Pain Points", core_systems: "Core Systems", major_risks: "Major Risks",
+  priority_areas: "Priority Areas", budget_appetite: "Budget Appetite",
+  change_readiness: "Change Readiness", founder_dependency: "Founder Dependency",
+  products: "Products / Services", industries_served: "Industries Served",
+  granuler_location: "Granuler Base", savings_identified: "Savings Identified",
+  prior_work: "Prior Work Delivered",
+};
+
+function mdCell(v) {
+  return String(v || "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
+function buildSessionMarkdown(state) {
+  const { pillarScores, overall } = overallFromState(state);
+  const company = state.intake.company_name || "Untitled";
+  const date = state.intake.assessment_date || new Date().toISOString().split("T")[0];
+  const L = [];
+  L.push(`# ${company} — Technology Maturity Assessment`);
+  L.push("");
+  L.push(`Date: ${date} | Overall: ${overall.toFixed(1)} / 100 | Band: ${bandFor(overall)}`);
+  L.push("");
+  L.push("## Intake");
+  L.push("");
+  L.push("| Field | Value |");
+  L.push("|---|---|");
+  for (const [k, label] of Object.entries(INTAKE_LABELS)) {
+    if (state.intake[k]) L.push(`| ${label} | ${mdCell(state.intake[k])} |`);
+  }
+  L.push("");
+  L.push("## Pillar Scores");
+  L.push("");
+  L.push("| # | Pillar | Score |");
+  L.push("|---|---|---|");
+  PILLARS.forEach((p, pi) => L.push(`| ${pi + 1} | ${p.name} | ${pillarScores[pi].toFixed(1)} / 10 |`));
+  L.push("");
+  L.push("## Discovery Checklist");
+  L.push("");
+  L.push("| Pillar | Subtopic | Score | Impact | Priority | Notes |");
+  L.push("|---|---|---|---|---|---|");
+  PILLARS.forEach((p, pi) => {
+    const st = state.pillars[pi];
+    p.subtopics.forEach((sub, si) => {
+      L.push(`| ${p.name} | ${sub} | ${st.scores[si]} | ${st.impacts[si]} | ${st.priorities[si]} | ${mdCell(st.notes[si])} |`);
+    });
+  });
+  L.push("");
+  L.push("## Working Notes");
+  L.push("");
+  L.push(state.notes || "_none_");
+  L.push("");
+  L.push("<!-- granuler:state — this block is what Load from file reads. Editing the tables above does not change it. -->");
+  L.push("");
+  L.push("```json");
+  L.push(JSON.stringify(state, null, 2));
+  L.push("```");
+  return L.join("\n");
+}
+
+function parseSessionFile(text) {
+  const marker = text.indexOf("<!-- granuler:state");
+  const region = marker === -1 ? text : text.slice(marker);
+  const fence = region.match(/```json\s*([\s\S]*?)```/);
+  if (fence) return JSON.parse(fence[1]);
+  // A bare .json export, or a file with no fence at all.
+  const start = text.indexOf("{"), end = text.lastIndexOf("}");
+  if (start === -1 || end <= start) throw new Error("No granuler:state block found in this file.");
+  return JSON.parse(text.slice(start, end + 1));
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function saveSessionFile() {
+  const state = collectState();
+  const company = (state.intake.company_name || "Untitled").replace(/\s+/g, "_");
+  const date = state.intake.assessment_date || new Date().toISOString().split("T")[0];
+  downloadBlob(new Blob([buildSessionMarkdown(state)], { type: "text/markdown" }), `${company}_${date}_granuler.md`);
+  setSessionStatus(`Saved ${company}_${date}_granuler.md`, "ok");
+}
+
+function loadSessionFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      applyState(parseSessionFile(reader.result));
+      saveToStorage();
+      setSessionStatus(`Loaded ${file.name}`, "ok");
+    } catch (err) {
+      setSessionStatus(`Could not read ${file.name}: ${err.message}`, "err");
+    }
+    input.value = "";
+  };
+  reader.readAsText(file);
+}
+
+function clearSession() {
+  if (!confirm("Clear the whole form, including working notes? Save to file first if you want to keep it.")) return;
+  localStorage.removeItem("granuler_form");
+  location.reload();
+}
+
+function importNotesFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById("workingNotes").value = reader.result;
+    saveToStorage();
+    setSessionStatus(`Imported notes from ${file.name}`, "ok");
+    input.value = "";
+  };
+  reader.readAsText(file);
 }
 
 function updateBadge(pi) {
@@ -823,6 +1097,11 @@ function buildPayload(form) {
     budget_appetite: fd.get("budget_appetite") || "",
     change_readiness: fd.get("change_readiness") || "",
     founder_dependency: fd.get("founder_dependency") || "",
+    products: fd.get("products") || "",
+    industries_served: fd.get("industries_served") || "",
+    granuler_location: fd.get("granuler_location") || "Mumbai",
+    savings_identified: fd.get("savings_identified") || "",
+    prior_work: fd.get("prior_work") || "",
     pillars: pillarsData
   };
 }
@@ -846,7 +1125,7 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
   const payload = buildPayload(e.target);
 
   try {
-    const resp = await fetch("https://granuler-production.up.railway.app/generate-report", {
+    const resp = await fetch(`${API_BASE}/generate-report`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -875,58 +1154,100 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
   }
 });
 
-const DEMO_DEFAULTS = {
-  intake: {
-    company_name: "Uni-tech Automation",
-    industry: "Manufacturing",
-    assessment_date: "2026-03-21",
-    assessor: "Ravi Kajaria",
-    revenue_range: "₹50–200 Cr",
-    employee_count: "100–250",
-    locations: "Pune",
-    key_stakeholders: "Laxman Katakkar, Prashant, Kiran Gadgil, QA Head, Plant Head (Shirvar), HR",
-    business_goals: "Business operations visibility via systems. Grow in US region. Accountability and measurability. Better and efficient systems for business growth. Identify bottlenecks that can be eliminated through systems. Data security and integrity for adhering to US clients.",
-    pain_points: "SAP S/4 Hana on outdated version 1709 — SAP FIORI unavailable. Basic SAP configuration needs upgrade. Data integration challenges. Manual analytics systems. Data integrity issues. Cybersecurity gaps. NAS box issues. No IT Policy.",
-    core_systems: "SAP S/4 Hana 1709, reporting tool",
-    major_risks: "Outdated SAP system. Dependency on key people. No DMS. Manual reporting. Data center hardware needs upgrade (OS, DB). Outdated OS on desktops and laptops. Data vulnerability. No strong IT policy. Data security visibility gaps.",
-    priority_areas: "SAP upgrade, IT Policy, Data security for foreign companies",
-    budget_appetite: "High",
-    change_readiness: "High — Leadership is actively driving change",
-    founder_dependency: "Yes — financials are in founder's control",
-  },
-  pillars: [
-    { scores:[2,3,4,3], impacts:["High","High","Medium","High"],   priorities:["Critical","Medium","Low","Medium"],     notes:["No defined technology roadmap linked to business growth","","",""] },
-    { scores:[4,4,2,5], impacts:["Medium","High","High","High"],   priorities:["Low","Low","Critical","Low"],           notes:["","","SAP 1709 integration gaps",""] },
-    { scores:[3,3,1,2], impacts:["Medium","High","High","High"],   priorities:["Medium","Medium","Critical","Critical"], notes:["","","Operational reports fully manual","Teams stuck on repetitive low-value tasks"] },
-    { scores:[4,3,3,2], impacts:["Low","Medium","High","High"],    priorities:["Low","Medium","Medium","Critical"],      notes:["","","","No consistent KPIs across management"] },
-    { scores:[1,5,3,4], impacts:["Medium","Low","High","Low"],     priorities:["High","Low","Medium","Low"],            notes:["SOPs not documented or current","","",""] },
-    { scores:[3,2,1,4], impacts:["High","High","High","Medium"],   priorities:["Medium","Critical","Critical","Low"],   notes:["","User rights not controlled or reviewed","No MFA, device protection, or password discipline",""] },
-    { scores:[4,3,2,2], impacts:["High","High","High","Medium"],   priorities:["Low","Medium","Critical","High"],       notes:["","","Performance issues not monitored","Hardware and core assets not refreshed"] },
-    { scores:[5,5,3,4], impacts:["Low","Low","High","Low"],        priorities:["Low","Low","Medium","Low"],             notes:["","","Knowledge concentrated in a few people",""] },
-    { scores:[3,4,5,3], impacts:["Low","Low","Low","Low"],         priorities:["Medium","Low","Low","Medium"],          notes:["","","",""] },
-    { scores:[1,3,2,3], impacts:["High","High","High","High"],     priorities:["Critical","Medium","Critical","Medium"], notes:["Current setup cannot support growth","","No visibility into next stage of digital capability",""] },
-  ]
-};
+// ---- Notes → auto-fill ----
 
-function loadDemoDefaults() {
-  for (const [k, v] of Object.entries(DEMO_DEFAULTS.intake)) {
-    const el = document.querySelector(`[name="${k}"]`);
-    if (el) el.value = v;
+function updateNotesStatus(msg, cls) {
+  const el = document.getElementById("notesStatus");
+  const btn = document.getElementById("analyseBtn");
+  const hasCompany = !!document.querySelector('[name="company_name"]').value.trim();
+  const hasNotes = !!document.getElementById("workingNotes").value.trim();
+  btn.disabled = !(hasCompany && hasNotes);
+  if (msg) { el.textContent = msg; el.className = "notes-hint " + (cls || ""); return; }
+  if (!hasCompany) el.textContent = "Enter a Company Name below first — it is masked before the notes are sent.";
+  else if (!hasNotes) el.textContent = "Paste or import notes to enable auto-fill.";
+  else el.textContent = "Ready. Auto-fill will overwrite the intake and checklist below.";
+  el.className = "notes-hint";
+}
+
+function markInferred(el, why) {
+  if (!el) return;
+  el.classList.add("inferred");
+  if (why && el.parentElement && !el.parentElement.querySelector(".why-note")) {
+    const d = document.createElement("div");
+    d.className = "why-note";
+    d.textContent = why;
+    el.parentElement.appendChild(d);
   }
-  DEMO_DEFAULTS.pillars.forEach((state, pi) => {
-    state.scores.forEach((score, si) => setScore(pi, si, score));
-    state.impacts.forEach((impact, si) => { const el = document.getElementById(`impact-${pi}-${si}`); if (el) el.value = impact; });
-    state.priorities.forEach((priority, si) => { const el = document.getElementById(`priority-${pi}-${si}`); if (el) el.value = priority; });
-    state.notes.forEach((note, si) => { const el = document.getElementById(`notes-${pi}-${si}`); if (el) el.value = note; });
-  });
-  saveToStorage();
+}
+
+async function analyseNotes() {
+  const btn = document.getElementById("analyseBtn");
+  const companyEl = document.querySelector('[name="company_name"]');
+  const company = companyEl.value.trim();
+  const notes = document.getElementById("workingNotes").value.trim();
+  if (!company || !notes) return updateNotesStatus();
+
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "⏳ Analysing...";
+  updateNotesStatus("Reading the notes and proposing scores — 20–40 seconds...", "");
+
+  try {
+    const resp = await fetch(`${API_BASE}/extract-from-notes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes, company_name: company }),
+    });
+    if (!resp.ok) throw new Error(`API returned ${resp.status}: ${await resp.text()}`);
+    const data = await resp.json();
+
+    let filled = 0;
+    for (const [k, v] of Object.entries(data.intake || {})) {
+      if (k === "company_name" || !v) continue;
+      const el = document.querySelector(`[name="${k}"]`);
+      if (el && !el.value) { el.value = v; markInferred(el); filled++; }
+      else if (el && el.value !== v) { el.value = v; markInferred(el); filled++; }
+    }
+
+    let scored = 0;
+    (data.pillars || []).forEach((p, pi) => {
+      (p.subtopics || []).forEach((s, si) => {
+        if (typeof s.score === "number") { setScore(pi, si, Math.min(5, Math.max(1, Math.round(s.score)))); scored++; }
+        const noteEl = document.getElementById(`notes-${pi}-${si}`);
+        if (noteEl && s.current_state_notes) { noteEl.value = s.current_state_notes; markInferred(noteEl, s.why || ""); }
+        const impEl = document.getElementById(`impact-${pi}-${si}`);
+        if (impEl && s.impact) impEl.value = s.impact;
+        const priEl = document.getElementById(`priority-${pi}-${si}`);
+        if (priEl && s.priority) priEl.value = s.priority;
+      });
+    });
+
+    saveToStorage();
+    updateNotesStatus(`Filled ${filled} intake fields and ${scored} subtopic scores. Amber fields came from the notes — review and correct them.`, "");
+    setSessionStatus("Auto-filled from notes", "ok");
+  } catch (err) {
+    const el = document.getElementById("notesStatus");
+    el.textContent = `Auto-fill failed: ${err.message}`;
+    el.className = "notes-hint";
+    el.style.color = "#991b1b";
+    btn.textContent = original;
+    btn.disabled = false;
+    return;
+  }
+  btn.textContent = original;
+  document.getElementById("notesStatus").style.color = "";
+  btn.disabled = false;
 }
 
 buildPillars();
+loadFromStorage();
+updateNotesStatus();
 
 // Save on any intake field change
 document.getElementById("assessmentForm").addEventListener("input", saveToStorage);
 document.getElementById("assessmentForm").addEventListener("change", saveToStorage);
+document.getElementById("workingNotes").addEventListener("input", () => updateNotesStatus());
+document.querySelector('[name="company_name"]').addEventListener("input", () => updateNotesStatus());
 
 // ---- Additional Deliverables ----
 
@@ -949,7 +1270,7 @@ async function generateDeliverable(type) {
   const payload = buildPayload(document.getElementById("assessmentForm"));
 
   try {
-    const resp = await fetch(`https://granuler-production.up.railway.app${cfg.endpoint}`, {
+    const resp = await fetch(`${API_BASE}${cfg.endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -958,6 +1279,7 @@ async function generateDeliverable(type) {
     const data = await resp.json();
 
     panel.classList.add("visible");
+    lastResult[type] = data;
 
     if (type === "quick-wins")    renderQuickWins(data);
     if (type === "risk-register") renderRiskRegister(data);
@@ -972,6 +1294,42 @@ async function generateDeliverable(type) {
   } finally {
     btn.disabled = false;
   }
+}
+
+const PDF_LABELS = { "quick-wins": "Quick_Wins", "risk-register": "Risk_Register", "proposal": "CIO_Proposal" };
+
+// Holds the JSON currently displayed in each output panel, so the PDF is a
+// render of exactly what is on screen rather than a second LLM run.
+const lastResult = {};
+
+async function downloadPdf(type, btn) {
+  const status = document.getElementById(DELIVERABLE_CONFIG[type].status);
+  const result = lastResult[type];
+  if (!result) {
+    status.className = "d-status error";
+    status.innerHTML = "❌ Generate the report first, then download the PDF.";
+    return;
+  }
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "⏳ Building PDF...";
+  try {
+    const resp = await fetch(`${API_BASE}/render-pdf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: type, company_name: result.company_name || "Client", data: result }),
+    });
+    if (!resp.ok) throw new Error(`API returned ${resp.status}: ${await resp.text()}`);
+    const company = (result.company_name || "Client").replace(/\s+/g, "_");
+    downloadBlob(await resp.blob(), `${company}_${PDF_LABELS[type]}.pdf`);
+    status.className = "d-status";
+    status.innerHTML = "✅ PDF downloaded";
+  } catch (err) {
+    status.className = "d-status error";
+    status.innerHTML = `❌ PDF failed: ${err.message}`;
+  }
+  btn.disabled = false;
+  btn.textContent = original;
 }
 
 function renderQuickWins(data) {

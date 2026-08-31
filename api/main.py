@@ -1,7 +1,8 @@
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
@@ -13,7 +14,16 @@ from .llm import (
     generate_quick_wins,
     generate_risk_register,
     generate_proposal,
+    generate_company_context,
+    generate_architecture_content,
+    generate_findings_content,
+    generate_conditional_content,
+    generate_roadmap_content,
+    generate_closing_content,
+    generate_prior_work_content,
+    extract_from_notes,
 )
+from .pdf_generator import RENDERERS as PDF_RENDERERS
 from .pptx_generator import (
     generate_report,
     _calc_pillar_score,
@@ -85,6 +95,14 @@ class ReportRequest(BaseModel):
     budget_appetite: str = ""
     change_readiness: str = ""
     founder_dependency: str = ""
+    products: str = ""
+    industries_served: str = ""
+    granuler_location: str = "Mumbai"
+    savings_identified: str = ""
+    # Work Granuler has already delivered for this client. Empty for a new
+    # client, which drops the three "progress delivered" slides from the deck
+    # rather than have the LLM invent a track record.
+    prior_work: str = ""
     pillars: list[PillarIn]
 
 
@@ -117,51 +135,190 @@ def generate(req: ReportRequest):
         for p in pillars_raw
     ]
 
-    llm_global = _restore_name(generate_global_content(
-        company_name=_LLM_CLIENT_LABEL,
-        industry=req.industry,
-        overall_score=overall_score,
-        maturity_band=maturity_band,
-        business_goals=req.business_goals,
-        pain_points=req.pain_points,
-        pillar_summaries=pillar_summaries,
-    ), req.company_name)
-
-    llm_pillars = [
-        _restore_name(generate_pillar_content(
-            company_name=_LLM_CLIENT_LABEL,
-            pillar_name=p["pillar"],
-            pillar_score=pillar_summaries[i]["score"],
-            subtopics=p["subtopics"],
-        ), req.company_name)
-        for i, p in enumerate(pillars_raw)
-    ]
-
     worst = min(pillar_summaries, key=lambda p: p["score"])
     worst_pillar_raw = next(p for p in pillars_raw if p["pillar"] == worst["name"])
-    llm_narrative = _restore_name(generate_narrative_content(
+
+    # Shared by every prompt that needs the client's situation.
+    ctx = dict(
         company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         business_goals=req.business_goals,
         pain_points=req.pain_points,
-        pillar_summaries=pillar_summaries,
-        worst_pillar_name=worst["name"],
-        worst_pillar_score=worst["score"],
-        worst_pillar_subtopics=worst_pillar_raw["subtopics"],
-    ), req.company_name)
+        core_systems=req.core_systems,
+        major_risks=req.major_risks,
+    )
+
+    # 17-18 LLM calls fill this deck. Run sequentially that is 60-90s; fanned
+    # out over threads the wall clock is roughly the slowest single call.
+    # litellm.completion is blocking HTTP, so threads are the right primitive.
+    jobs: dict[str, tuple] = {
+        "global": (generate_global_content, dict(
+            company_name=_LLM_CLIENT_LABEL,
+            industry=req.industry,
+            overall_score=overall_score,
+            maturity_band=maturity_band,
+            business_goals=req.business_goals,
+            pain_points=req.pain_points,
+            pillar_summaries=pillar_summaries,
+        )),
+        "narrative": (generate_narrative_content, dict(
+            company_name=_LLM_CLIENT_LABEL,
+            industry=req.industry,
+            business_goals=req.business_goals,
+            pain_points=req.pain_points,
+            pillar_summaries=pillar_summaries,
+            worst_pillar_name=worst["name"],
+            worst_pillar_score=worst["score"],
+            worst_pillar_subtopics=worst_pillar_raw["subtopics"],
+        )),
+        "context": (generate_company_context, dict(
+            **ctx,
+            locations=req.locations,
+            products=req.products,
+            industries_served=req.industries_served,
+            overall_score=overall_score,
+            maturity_band=maturity_band,
+        )),
+        "architecture": (generate_architecture_content, dict(**ctx, maturity_band=maturity_band)),
+        "findings": (generate_findings_content, dict(**ctx, pillars=pillars_raw)),
+        "conditional": (generate_conditional_content, dict(**ctx, pillars=pillars_raw)),
+        "roadmap": (generate_roadmap_content, dict(
+            **ctx, priority_areas=req.priority_areas, pillar_summaries=pillar_summaries,
+        )),
+        "closing": (generate_closing_content, dict(
+            **ctx,
+            overall_score=overall_score,
+            maturity_band=maturity_band,
+            savings_identified=req.savings_identified,
+        )),
+    }
+    if req.prior_work.strip():
+        jobs["prior_work"] = (generate_prior_work_content, dict(
+            company_name=_LLM_CLIENT_LABEL,
+            industry=req.industry,
+            prior_work=req.prior_work,
+            savings_identified=req.savings_identified,
+        ))
+
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        futures = {name: pool.submit(fn, **kwargs) for name, (fn, kwargs) in jobs.items()}
+        # Index the pillar futures so results keep their pillar order.
+        pillar_futures = [
+            pool.submit(
+                generate_pillar_content,
+                company_name=_LLM_CLIENT_LABEL,
+                pillar_name=p["pillar"],
+                pillar_score=pillar_summaries[i]["score"],
+                subtopics=p["subtopics"],
+            )
+            for i, p in enumerate(pillars_raw)
+        ]
+        results = {name: _restore_name(f.result(), req.company_name) for name, f in futures.items()}
+        llm_pillars = [_restore_name(f.result(), req.company_name) for f in pillar_futures]
 
     pptx_bytes = generate_report(
         intake=intake,
         pillars=pillars_raw,
-        llm_global=llm_global,
+        llm_global=results["global"],
         llm_pillars=llm_pillars,
-        llm_narrative=llm_narrative,
+        llm_narrative=results["narrative"],
+        llm_context=results["context"],
+        llm_architecture=results["architecture"],
+        llm_findings=results["findings"],
+        llm_conditional=results["conditional"],
+        llm_roadmap=results["roadmap"],
+        llm_closing=results["closing"],
+        llm_prior_work=results.get("prior_work"),
     )
 
     filename = f"{req.company_name.replace(' ', '_')}_Granuler_Assessment.pptx"
     return Response(
         content=pptx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _deliverable_response(kind: str, company_name: str, result: dict, fmt: str):
+    """JSON by default so the existing HTML output panels keep working."""
+    if fmt != "pdf":
+        return {"company_name": company_name, **result}
+
+    render, label = PDF_RENDERERS[kind]
+    filename = f"{company_name.replace(' ', '_')}_{label}.pdf"
+    return Response(
+        content=render(company_name, result),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+class NotesRequest(BaseModel):
+    notes: str
+    company_name: str
+
+
+def _mask_company(text: str, company_name: str) -> str:
+    """Replace the client's name in freeform notes with the LLM placeholder.
+
+    The settled rule is that the client's company name never reaches the LLM.
+    Notes extraction has to send the notes body, so the name is masked here
+    first: the full name, then each distinctive word of it, longest first so a
+    multi-word name is not left half-substituted.
+
+    Person names in the notes are NOT masked - there is no reliable detector
+    for them. The frontend states this above the notes box so the choice is the
+    assessor's, made knowingly.
+    """
+    tokens = [company_name] + [
+        word for word in re.split(r"\W+", company_name) if len(word) > 3
+    ]
+    for token in sorted(set(tokens), key=len, reverse=True):
+        text = re.sub(
+            rf"(?<![\w]){re.escape(token)}(?![\w])", _LLM_CLIENT_LABEL, text, flags=re.IGNORECASE
+        )
+    return text
+
+
+@app.post("/extract-from-notes")
+def extract_notes(req: NotesRequest):
+    if not req.notes.strip():
+        raise HTTPException(status_code=422, detail="notes must not be empty")
+    if not req.company_name.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="company_name is required so it can be masked before the notes are sent",
+        )
+
+    masked = _mask_company(req.notes, req.company_name)
+    result = _restore_name(
+        extract_from_notes(company_name=_LLM_CLIENT_LABEL, notes=masked),
+        req.company_name,
+    )
+    return {"company_name": req.company_name, **result}
+
+
+class RenderPdfRequest(BaseModel):
+    kind: str
+    company_name: str
+    data: dict
+
+
+@app.post("/render-pdf")
+def render_pdf(req: RenderPdfRequest):
+    """Render an already-generated deliverable to PDF. No LLM call.
+
+    The frontend holds the JSON it just displayed, so downloading a PDF of it
+    must not re-run generation: that would cost another 20-40s and another set
+    of tokens, and could return different text from what is on screen.
+    """
+    if req.kind not in PDF_RENDERERS:
+        raise HTTPException(status_code=422, detail=f"Unknown deliverable {req.kind!r}")
+    render, label = PDF_RENDERERS[req.kind]
+    filename = f"{req.company_name.replace(' ', '_')}_{label}.pdf"
+    return Response(
+        content=render(req.company_name, req.data),
+        media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
@@ -179,7 +336,7 @@ def _parse_request(req: ReportRequest):
 
 
 @app.post("/generate-quick-wins")
-def quick_wins(req: ReportRequest):
+def quick_wins(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
     pillars_raw, _, _, _, _ = _parse_request(req)
@@ -190,11 +347,11 @@ def quick_wins(req: ReportRequest):
         pain_points=req.pain_points,
         pillars=pillars_raw,
     ), req.company_name)
-    return {"company_name": req.company_name, **result}
+    return _deliverable_response("quick-wins", req.company_name, result, format)
 
 
 @app.post("/generate-risk-register")
-def risk_register(req: ReportRequest):
+def risk_register(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
     pillars_raw, _, _, _, _ = _parse_request(req)
@@ -203,11 +360,11 @@ def risk_register(req: ReportRequest):
         industry=req.industry,
         pillars=pillars_raw,
     ), req.company_name)
-    return {"company_name": req.company_name, **result}
+    return _deliverable_response("risk-register", req.company_name, result, format)
 
 
 @app.post("/generate-proposal")
-def proposal(req: ReportRequest):
+def proposal(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
     pillars_raw, _, pillar_summaries, overall_score, maturity_band = _parse_request(req)
@@ -223,4 +380,4 @@ def proposal(req: ReportRequest):
         budget_appetite=req.budget_appetite,
         pillar_summaries=pillar_summaries,
     ), req.company_name)
-    return {"company_name": req.company_name, **result}
+    return _deliverable_response("proposal", req.company_name, result, format)

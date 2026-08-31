@@ -3,3 +3,67 @@ max_tokens: 4096
 temperature: 0.3
 pillar_count: 10
 subtopics_per_pillar: 4
+
+# Canonical pillar and subtopic names. demo.html's PILLARS list and the
+# LLM notes-extraction prompt both read from this; tests assert they agree.
+pillars:
+  - name: "IT Strategy Alignment"
+    subtopics:
+      - "IT Roadmap & Vision"
+      - "Business-IT Alignment"
+      - "IT Governance Structure"
+      - "Technology Investment Planning"
+  - name: "Systems & Application Landscape"
+    subtopics:
+      - "Core Business Systems Coverage"
+      - "Application Integration"
+      - "Legacy System Management"
+      - "SaaS / Cloud Adoption"
+  - name: "Process Automation"
+    subtopics:
+      - "Workflow Automation Maturity"
+      - "RPA / AI Tool Adoption"
+      - "Manual Process Dependency"
+      - "Automation ROI Tracking"
+  - name: "Data Quality & Reporting"
+    subtopics:
+      - "Data Accuracy & Completeness"
+      - "Reporting & Dashboards"
+      - "Data Governance"
+      - "Analytics Capability"
+  - name: "Compliance & Governance"
+    subtopics:
+      - "Regulatory Compliance"
+      - "IT Policy Framework"
+      - "Audit Readiness"
+      - "Data Privacy & GDPR/DPDP"
+  - name: "Cybersecurity & Risk"
+    subtopics:
+      - "Endpoint Security"
+      - "Access Control & IAM"
+      - "Incident Response Readiness"
+      - "Security Awareness Training"
+  - name: "Infrastructure & Reliability"
+    subtopics:
+      - "System Uptime & Availability"
+      - "Disaster Recovery & Backup"
+      - "Network Infrastructure"
+      - "Cloud / On-Prem Strategy"
+  - name: "User Adoption & Training"
+    subtopics:
+      - "Technology Training Programs"
+      - "User Satisfaction & Feedback"
+      - "Change Management Process"
+      - "Digital Skills Development"
+  - name: "Vendor & IT Spend Control"
+    subtopics:
+      - "Vendor Management"
+      - "IT Budget Visibility"
+      - "Contract Management"
+      - "Cost Optimisation"
+  - name: "Scalability & Future Readiness"
+    subtopics:
+      - "Technology Scalability"
+      - "Innovation Culture"
+      - "Emerging Tech Readiness"
+      - "Digital Transformation Maturity"
