@@ -327,8 +327,8 @@ growth_pillars: list of exactly 4 short labels (2-4 words each) naming the capab
 strategic_shift: one line in the form "The strategic shift: A -> B" describing this company's transition.
 company_description: 1-2 sentences describing what the company does and where it operates. MUST use the locations given above and no other location.
 expansion_note: 1 sentence on the company's growth direction and why technology maturity matters to it.
-products_line: the products or services as a single line, separated by " | ". Use only what is given; if none given, describe the offering generically in 3-6 words.
-industries_line: the industries served as a single line separated by " | ". Use only what is given.
+products_line: the products or services as a single line, separated by " | ". Use only what is given; if none given, describe the offering generically in 3-6 words. Never return an empty string.
+industries_line: the industries served as a single line separated by " | ". Use what is given; if none is given, derive them from the products and the industry named above. Never return an empty string and never name an industry the input does not support.
 score_interpretation_long: 2 sentences explaining what the maturity score means for this company, naming the band.
 delivery_description: 1 sentence describing how Granuler delivers fractional CIO advisory to this client, referencing the client's location.
 delivery_note: 1 sentence on why transformation needs strategic leadership rather than onsite IT support.
@@ -622,9 +622,17 @@ GROUNDING RULES:
 - Leave an intake field as an empty string if the notes do not cover it.
 - Never introduce a system, vendor, location or figure the notes do not mention.
 
-SCORING SCALE (1-5, where 1 is worst):
+SCORING SCALE (1-5). The score always measures MATURITY: 5 is always the healthy
+state and 1 is always the worst state.
 1 = absent or entirely manual; 2 = minimal, ad hoc; 3 = partially in place;
 4 = largely in place and working; 5 = mature and well governed.
+
+This holds even where the subtopic is NAMED after the problem. Some subtopic
+names describe a weakness rather than a capability - "Manual Process
+Dependency", "Founder Dependency" and similar. For those, more of the named
+problem means a LOWER score, not a higher one: heavy manual dependency scores 1,
+almost none scores 5. Never invert the scale.
+
 Where the notes give no evidence for a subtopic, score it 3 and set "why" to
 "No evidence in the notes - please review."
 
@@ -637,6 +645,10 @@ intake: object with these string keys, filled from the notes where covered and
   products, industries_served.
   - key_stakeholders: use ROLE TITLES only (e.g. "Owner, Production Manager, QC
     Head"). Do NOT include any person's name.
+  - locations: every place the notes associate with the company's own sites,
+    plants, offices or staff, comma separated - including places mentioned only
+    as a headcount split (e.g. "18 in Mumbai, 2 in Umargaon" gives
+    "Mumbai, Umargaon"). Exclude customer and export markets.
   - revenue_range and employee_count: only if the notes state a figure.
   - change_readiness: one of "High", "Medium", "Low" plus a short reason, or "".
 

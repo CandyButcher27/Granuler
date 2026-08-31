@@ -414,12 +414,17 @@ _PAIRS_3D = [("Text 4", "Text 5"), ("Text 6", "Text 7"), ("Text 8", "Text 9")]
 
 
 def _fill(slide, shape_name: str, text: str):
-    """Write text to a named shape. A blank value leaves the template text alone."""
-    if not text:
-        return
+    """Write text to a named shape, blanking it when there is nothing to write.
+
+    Blank must mean "clear", not "keep". Only the newly-dynamic slides use this,
+    and on those the template text belongs to a different client — leaving it in
+    place is the bug this module was reworked to remove. Slide 3's "Industries
+    Served" shipped Uni-tech's industries this way during the 2026-09-01 smoke
+    test, because the field came back empty.
+    """
     shape = _get_shape_by_name(slide, shape_name)
     if shape is not None:
-        _set_text(shape, text)
+        _set_text(shape, text or "")
 
 
 def _clear(slide, *shape_names):
@@ -463,8 +468,9 @@ def _fill_context_slides(slides, ctx: dict, intake: dict):
     s = slides[S_HOOK]
     _fill(s, "Text 0", ctx.get("hook_question", ""))
     _fill(s, "Text 1", ctx.get("growth_framing", ""))
-    for shape_name, label in zip(["Text 4", "Text 7", "Text 10", "Text 13"], ctx.get("growth_pillars", [])):
-        _fill(s, shape_name, label)
+    pillar_labels = ctx.get("growth_pillars") or []
+    for index, shape_name in enumerate(["Text 4", "Text 7", "Text 10", "Text 13"]):
+        _fill(s, shape_name, pillar_labels[index] if index < len(pillar_labels) else "")
     _fill(s, "Text 15", ctx.get("strategic_shift", ""))
 
     s = slides[S_COMPANY]
@@ -726,6 +732,9 @@ _TEMPLATE_FINGERPRINTS = (
     "sap", "s/4hana", "1709", "fiori", "sydler", "uni-tech", "unitech",
     "windows 7", "windows 11", "pune", "mrp", "bom", "nas box",
     "₹10l", "₹10,00,000", "pcc", "mcc", "apfc",
+    # Uni-tech's products and markets, from slides 2 and 3.
+    "wiring harness", "automation manufacturing", "power generation",
+    "engineering infrastructure", "industrial manufacturing",
 )
 
 
