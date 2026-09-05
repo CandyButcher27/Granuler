@@ -215,27 +215,59 @@ def _normalise_quick_wins(result: dict) -> dict:
     return result
 
 
+# The wording demo.html shows the assessor beside each score button, so the
+# label the model reads is the label he chose against.
+SEVERITY = {
+    1: "CRITICAL GAP",
+    2: "BELOW BASELINE",
+    3: "BASIC / PARTIAL",
+    4: "MANAGED",
+    5: "OPTIMISED",
+}
+
+
+def _ranked_rows(pillars: list[dict], limit: int | None = None) -> str:
+    """Format the checklist worst score first, with the severity spelled out.
+
+    Scores used to appear only as a digit inside an unordered list, so a
+    checklist of all 3s and a real assessment of mostly 1s and 2s produced
+    near-identical prompts and near-identical reports. Ordering by score and
+    naming the band is what makes the number change the output.
+    """
+    rows = sorted(
+        ((p["pillar"], s) for p in pillars for s in p["subtopics"]),
+        key=lambda pair: (pair[1]["score"], pair[1].get("priority", "") != "Critical"),
+    )
+    if limit is not None:
+        rows = rows[:limit]
+    return "\n".join(
+        f"- [{s['score']}/5 {SEVERITY.get(s['score'], '')}] {pillar} / {s['subtopic']}"
+        f" - impact {s['impact']}, priority {s.get('priority', '')}"
+        f", notes: {s.get('current_state_notes', '') or 'none recorded'}"
+        for pillar, s in rows
+    )
+
+
 def generate_quick_wins(
     company_name: str,
     industry: str,
     business_goals: str,
     pain_points: str,
     pillars: list[dict],
+    overall_score: float,
+    maturity_band: str,
 ) -> dict:
-    rows = []
-    for p in pillars:
-        for s in p["subtopics"]:
-            if s["score"] <= 3 or s.get("priority", "") in ("Critical", "High"):
-                rows.append(
-                    f"- [{p['pillar']}] {s['subtopic']}: score {s['score']}/5, impact {s['impact']}, priority {s.get('priority','')}, notes: {s.get('current_state_notes','')}"
-                )
-    checklist = "\n".join(rows)
+    checklist = _ranked_rows(pillars, limit=14)
     prompt = f"""You are a technology transformation consultant writing a quick wins report for {company_name}, a {industry} company.
 
+Overall Maturity Score: {overall_score:.1f}/100 - {maturity_band}
 Business Goals: {business_goals}
 Pain Points: {pain_points}
 
-High-priority checklist items (score ≤3 or Critical/High priority):
+The fourteen weakest checklist items, worst score first. The score is the
+assessor's own judgement and is the ranking you must follow: spend the report
+on the CRITICAL GAP and BELOW BASELINE items above, and do not give a MANAGED
+or OPTIMISED item the same weight as a critical one.
 {checklist}
 
 Return JSON with exactly these four keys: process, controls, reporting, automation.
@@ -273,21 +305,27 @@ def generate_risk_register(
     company_name: str,
     industry: str,
     pillars: list[dict],
+    overall_score: float,
+    maturity_band: str,
 ) -> dict:
-    rows = []
-    for p in pillars:
-        for s in p["subtopics"]:
-            rows.append(
-                f"pillar={p['pillar']} | subtopic={s['subtopic']} | score={s['score']}/5 | impact={s['impact']} | priority={s.get('priority','')} | notes={s.get('current_state_notes','')} | evidence={s.get('evidence','')}"
-            )
-    checklist = "\n".join(rows)
+    checklist = _ranked_rows(pillars)
     prompt = f"""You are a technology risk analyst writing a risk register for {company_name}, a {industry} company.
 
-Full discovery checklist:
+Overall Maturity Score: {overall_score:.1f}/100 - {maturity_band}
+
+Full discovery checklist, worst score first:
 {checklist}
 
 Return JSON with exactly one key:
-risks: list of risk objects. Include all subtopics with score ≤3 or impact High or priority Critical/High. Each object must have:
+risks: list of risk objects, one per subtopic scoring 3 or below. A subtopic
+scoring 4 or 5 is not a risk and must be left out entirely - if every subtopic
+scores 4 or 5, return an empty list rather than inventing risks.
+
+Urgency follows the score, which is the assessor's own judgement:
+score 1 gives "Critical", score 2 gives "High", score 3 gives "Medium". Raise
+one step only where impact is High or priority is Critical. Never lower it.
+
+Each object must have:
 - risk_statement: 1 sentence describing the specific risk (not the subtopic name — the actual risk it creates)
 - pillar: pillar name
 - business_impact: 1 sentence on business consequence

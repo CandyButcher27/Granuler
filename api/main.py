@@ -392,13 +392,15 @@ def _parse_request(req: ReportRequest):
 def quick_wins(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
-    pillars_raw, _, _, _, _ = _parse_request(req)
+    pillars_raw, _, _, overall_score, maturity_band = _parse_request(req)
     result = _restore_name(generate_quick_wins(
         company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         business_goals=req.business_goals,
         pain_points=req.pain_points,
         pillars=pillars_raw,
+        overall_score=overall_score,
+        maturity_band=maturity_band,
     ), req.company_name)
     return _deliverable_response("quick-wins", req.company_name, result, format)
 
@@ -407,11 +409,13 @@ def quick_wins(req: ReportRequest, format: str = Query("json", pattern="^(json|p
 def risk_register(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
-    pillars_raw, _, _, _, _ = _parse_request(req)
+    pillars_raw, _, _, overall_score, maturity_band = _parse_request(req)
     result = _restore_name(generate_risk_register(
         company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         pillars=pillars_raw,
+        overall_score=overall_score,
+        maturity_band=maturity_band,
     ), req.company_name)
     return _deliverable_response("risk-register", req.company_name, result, format)
 
