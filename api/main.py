@@ -26,6 +26,7 @@ from .llm import (
     generate_prior_work_content,
     extract_from_notes,
 )
+from .image_brief import image_brief_pdf
 from .pdf_generator import RENDERERS as PDF_RENDERERS
 from .pptx_generator import (
     generate_report,
@@ -153,6 +154,16 @@ def demo():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/image-brief")
+def image_brief():
+    """The prompts for the stock photographs the template still carries."""
+    return Response(
+        content=image_brief_pdf(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="Granuler_Image_Brief.pdf"'},
+    )
 
 
 @app.post("/generate-report")
