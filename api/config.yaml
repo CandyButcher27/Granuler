@@ -1,4 +1,11 @@
 model: "openai/gpt-4o-mini"
+
+# Scoring 40 subtopics from freeform notes is a judgement task, and the cheap
+# model floors every row the notes do not explicitly praise. It runs once per
+# assessment against the 13 narrative calls, so a stronger model here costs
+# little. Delete this key to put extraction back on `model`.
+extraction_model: "openai/gpt-4o"
+
 max_tokens: 4096
 temperature: 0.3
 pillar_count: 10

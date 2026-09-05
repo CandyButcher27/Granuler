@@ -11,6 +11,7 @@ with open(_config_path) as f:
     _cfg = yaml.safe_load(f)
 
 _MODEL = _cfg["model"]
+_EXTRACTION_MODEL = _cfg.get("extraction_model") or _MODEL
 _MAX_TOKENS = _cfg["max_tokens"]
 _TEMPERATURE = _cfg["temperature"]
 _API_KEY = _cfg.get("api_key") or None
@@ -31,9 +32,9 @@ def _extract_json(text: str) -> dict:
     return json.loads(text)
 
 
-def _call(prompt: str) -> dict:
+def _call(prompt: str, model: str | None = None) -> dict:
     kwargs = dict(
-        model=_MODEL,
+        model=model or _MODEL,
         messages=[{"role": "user", "content": prompt + "\n\nRespond with raw JSON only. No markdown, no code fences. Refer to the company using the exact phrase \"the client company\" every time — never invent, abbreviate, or vary it."}],
         max_tokens=_MAX_TOKENS,
         temperature=_TEMPERATURE,
@@ -681,10 +682,16 @@ DISCOVERY NOTES:
 ASSESSMENT CHECKLIST - score every one of these {len(PILLAR_DEFINITIONS)} pillars and their subtopics:
 {checklist}
 
-GROUNDING RULES:
+GROUNDING RULES - these govern the intake fields and every phrase you quote
+back from the notes:
 - Extract only what the notes actually say. Do not infer facts that are not there.
 - Leave an intake field as an empty string if the notes do not cover it.
 - Never introduce a system, vendor, location or figure the notes do not mention.
+
+SCORING RULES - these govern "score", and they are deliberately different from
+the grounding rules above. A maturity score is a JUDGEMENT about the company,
+not a fact to be quoted. Score every one of the subtopics. Never leave one
+unscored, and never decline to judge one.
 
 SCORING SCALE (1-5). The score always measures MATURITY: 5 is always the healthy
 state and 1 is always the worst state.
@@ -697,8 +704,29 @@ Dependency", "Founder Dependency" and similar. For those, more of the named
 problem means a LOWER score, not a higher one: heavy manual dependency scores 1,
 almost none scores 5. Never invert the scale.
 
-Where the notes give no evidence for a subtopic, score it 3 and set "why" to
-"No evidence in the notes - please review."
+Judge each subtopic from the WHOLE picture, not only from a sentence that names
+it. Discovery notes are a problem inventory: they record what hurts and stay
+silent on what already works. Silence is therefore NOT evidence of absence.
+Calibrating 1 against 3 is the judgement that matters most, so apply these in
+order:
+- Where the notes carry their own pain-point, major-risk or immediate-priority
+  list, that list is the assessor's headline verdict. Every subtopic those
+  entries name or plainly cover scores 1-2, however calm the wording is.
+- Score 1-2 only where the notes show the gap is HURTING THE BUSINESS TODAY -
+  named as a pain point, a risk, a conflict, a complaint, a delay, or something
+  the staff repeatedly work around by hand.
+- Where the notes park a subtopic as future work - "to be explored", "to be
+  designed", "needs to be checked", "not a priority at the moment" - the
+  business has already recognised it. That is an open item, not a crisis.
+  Score 3, even when the phrasing also says the thing does not exist yet.
+- Where the notes speak well of the people, the culture, management engagement,
+  or the product's standing in its market, carry that praise into the pillars it
+  belongs to and score 4-5 there, even if no sentence names the subtopic.
+- Where the notes genuinely say nothing either way and the wider picture does
+  not settle it, score 3.
+Do not floor an entire pillar at 1 merely because the notes never praised it.
+A pillar scoring 1 across all its subtopics is a strong claim: make it only
+where the notes describe that whole area as actively broken.
 
 Return JSON with exactly two keys:
 
@@ -724,5 +752,7 @@ pillars: list of exactly {len(PILLAR_DEFINITIONS)} objects, in the checklist ord
       "impact": "High", "Medium" or "Low"
       "priority": "Critical", "High", "Medium" or "Low"
       "current_state_notes": one short phrase from the notes evidencing the score, or ""
-      "why": one short sentence naming what in the notes led to this score"""
-    return _call(prompt)
+      "why": one short sentence naming what led to this score. Where no sentence
+        in the notes names this subtopic and you judged it from the wider
+        picture, begin with "Inferred: " so the assessor can review it first."""
+    return _call(prompt, model=_EXTRACTION_MODEL)

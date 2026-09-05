@@ -86,3 +86,21 @@ def test_each_output_panel_owns_its_own_pdf_button():
         panel = source[start:source.index('<div class="output-body"', start)]
         calls = re.findall(r"downloadPdf\('([a-z-]+)'", panel)
         assert calls == [kind], f"{panel_id} has {calls}"
+
+
+def test_calibration_gold_scores_match_the_pillar_definitions():
+    """The gold scores grade the extractor, so they must line up with it.
+
+    A pillar renamed in config.yaml without the fixture following would make
+    calibration silently compare nothing.
+    """
+    from tests.calibrate_extraction import RAVI_SCORES, overall_score
+
+    assert list(RAVI_SCORES) == [p["name"] for p in PILLAR_DEFINITIONS]
+    for pillar, scores in RAVI_SCORES.items():
+        expected = len(next(p for p in PILLAR_DEFINITIONS if p["name"] == pillar)["subtopics"])
+        assert len(scores) == expected, f"{pillar} has {len(scores)} scores, expected {expected}"
+        assert all(1 <= s <= 5 for s in scores), pillar
+
+    # Ravi's own total for Nihaar Equipments, the number the extractor is graded against.
+    assert overall_score(RAVI_SCORES) == 43.5
