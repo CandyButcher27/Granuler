@@ -845,7 +845,9 @@ function buildPillars() {
       </div>
     `;
     container.appendChild(block);
-    pillar.subtopics.forEach((_, si) => setScore(pi, si, 3));
+    // Deliberately not seeded. Pre-selecting 3 on all forty subtopics made an
+    // untouched form read as a completed assessment scoring 60/100, and left
+    // no way to tell a considered 3 from one nobody had looked at.
   });
 }
 
@@ -895,8 +897,11 @@ function collectState() {
   const fd = new FormData(document.getElementById("assessmentForm"));
   const intake = {};
   for (const [k, v] of fd.entries()) intake[k] = v;
+  // null, not 3, for a subtopic nobody has scored. Saving the default made an
+  // untouched form come back from a reload looking deliberately scored: every
+  // pillar showed a confident 6.0 / 10 that no one had chosen.
   const pillarsState = PILLARS.map((p, pi) => ({
-    scores: p.subtopics.map((_, si) => (scores[pi] && scores[pi][si]) || 3),
+    scores: p.subtopics.map((_, si) => (scores[pi] && scores[pi][si] !== undefined) ? scores[pi][si] : null),
     impacts: p.subtopics.map((_, si) => document.getElementById(`impact-${pi}-${si}`)?.value || "Medium"),
     priorities: p.subtopics.map((_, si) => document.getElementById(`priority-${pi}-${si}`)?.value || "Medium"),
     notes: p.subtopics.map((_, si) => document.getElementById(`notes-${pi}-${si}`)?.value || ""),
@@ -913,7 +918,7 @@ function applyState(state) {
   }
   if (typeof notes === "string") document.getElementById("workingNotes").value = notes;
   (pillars || []).forEach((st, pi) => {
-    (st.scores || []).forEach((score, si) => setScore(pi, si, score));
+    (st.scores || []).forEach((score, si) => { if (score !== null && score !== undefined) setScore(pi, si, score); });
     (st.impacts || []).forEach((v, si) => { const el = document.getElementById(`impact-${pi}-${si}`); if (el) el.value = v; });
     (st.priorities || []).forEach((v, si) => { const el = document.getElementById(`priority-${pi}-${si}`); if (el) el.value = v; });
     (st.notes || []).forEach((v, si) => { const el = document.getElementById(`notes-${pi}-${si}`); if (el) el.value = v; });
@@ -1190,8 +1195,26 @@ function showStatus(type, msg) {
     : msg;
 }
 
+// Every unscored subtopic is submitted as 3, so a form nobody scored still
+// produces a plausible 60/100 report. Say so before spending the AI call.
+function unscoredCount() {
+  let missing = 0;
+  PILLARS.forEach((p, pi) => p.subtopics.forEach((_, si) => {
+    if (!(scores[pi] && scores[pi][si] !== undefined)) missing++;
+  }));
+  return missing;
+}
+
 document.getElementById("assessmentForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const missing = unscoredCount();
+  if (missing) {
+    const total = PILLARS.reduce((n, p) => n + p.subtopics.length, 0);
+    const message = missing === total
+      ? "Nothing has been scored yet. Every subtopic would be sent as 3 out of 5, which produces a 60/100 report that reflects no assessment at all.\n\nGenerate anyway?"
+      : `${missing} of ${total} subtopics have not been scored. Each one is sent as 3 out of 5, which will pull the result toward the middle.\n\nGenerate anyway?`;
+    if (!confirm(message)) return;
+  }
   const btn = document.getElementById("generateBtn");
   btn.disabled = true;
   btn.textContent = "⏳ Generating...";

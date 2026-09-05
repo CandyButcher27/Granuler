@@ -104,3 +104,18 @@ def test_calibration_gold_scores_match_the_pillar_definitions():
 
     # Ravi's own total for Nihaar Equipments, the number the extractor is graded against.
     assert overall_score(RAVI_SCORES) == 43.5
+
+
+def test_the_form_does_not_pre_score_every_subtopic():
+    """An untouched checklist must not look like a completed assessment.
+
+    Rendering seeded all forty subtopics to 3, so a form nobody had scored
+    showed a confident 6.0/10 on every pillar and generated a 60/100 report.
+    Autosave then persisted those defaults, so a reload could not tell a
+    considered 3 from a subtopic nobody had looked at.
+    """
+    source = DEMO_HTML.read_text(encoding="utf-8")
+    assert "setScore(pi, si, 3)" not in source, "the form seeds a default score again"
+    assert "unscoredCount()" in source, "no warning before generating an unscored report"
+    assert "scores[pi][si] !== undefined) ? scores[pi][si] : null" in source, \
+        "autosave is persisting default scores again"
