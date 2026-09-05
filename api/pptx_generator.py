@@ -8,6 +8,7 @@ from pathlib import Path
 from pptx import Presentation
 from pptx.util import Pt
 from pptx.enum.text import MSO_AUTO_SIZE
+from pptx.oxml.ns import qn
 
 import yaml as _yaml
 
@@ -20,6 +21,84 @@ with open(_cfg_path) as _f:
 
 PILLAR_COUNT: int = _cfg.get("pillar_count", 10)
 SUBTOPICS_PER_PILLAR: int = _cfg.get("subtopics_per_pillar", 4)
+
+
+_DEFAULT_PT = 14.0
+_LINE_SPACING = 1.2
+# Shrinking past this looks worse than the overflow it fixes: the text ends up
+# visibly smaller than the identical card beside it, and PowerPoint does not
+# clip overflow anyway, so a slight spill into the whitespace below reads
+# better than 7pt type. Text needing more than this is left alone.
+_MIN_FONT_SCALE = 0.8
+
+
+def _strip_highlight(tf):
+    """Drop any highlight fill carried over from the template.
+
+    The template's overall-score run is highlighted yellow. Filling the run
+    keeps its formatting, so every client's score shipped with a marker-pen
+    block behind it.
+    """
+    for element in tf._txBody.iter():
+        if element.tag == qn("a:highlight"):
+            element.getparent().remove(element)
+
+
+def _text_height_pt(tf, width_pt: float) -> float:
+    """Estimate the height this text needs, wrapped to width_pt.
+
+    Helvetica metrics stand in for the template's Arial - the two are close
+    enough for a shrink factor, and reportlab is already a dependency.
+    """
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    total = 0.0
+    for para in tf.paragraphs:
+        size = next((r.font.size.pt for r in para.runs if r.font.size), None) or _DEFAULT_PT
+        words = "".join(r.text for r in para.runs).split()
+        if not words:
+            total += size * _LINE_SPACING
+            continue
+        lines, current = 1, ""
+        for word in words:
+            trial = f"{current} {word}".strip()
+            if current and stringWidth(trial, "Helvetica", size) > width_pt:
+                lines += 1
+                current = word
+            else:
+                current = trial
+        total += lines * size * _LINE_SPACING
+    return total
+
+
+def _fit_text(shape):
+    """Shrink text that would otherwise spill out of its box.
+
+    python-pptx writes a bare <a:normAutofit/>, which PowerPoint ignores until
+    someone edits the text - so generated decks rendered at full size and
+    overflowed. The scale is therefore computed here and written explicitly,
+    the way PowerPoint itself would.
+    """
+    tf = shape.text_frame
+    width_pt = (shape.width - tf.margin_left - tf.margin_right) / 12700
+    height_pt = (shape.height - tf.margin_top - tf.margin_bottom) / 12700
+    if width_pt <= 0 or height_pt <= 0:
+        return
+    needed = _text_height_pt(tf, width_pt)
+    if needed <= height_pt:
+        return
+    scale = height_pt / needed
+    if scale < _MIN_FONT_SCALE:
+        return
+    body_pr = tf._txBody.find(qn("a:bodyPr"))
+    if body_pr is None:
+        return
+    for existing in body_pr.findall(qn("a:normAutofit")):
+        body_pr.remove(existing)
+    autofit = body_pr.makeelement(qn("a:normAutofit"), {})
+    autofit.set("fontScale", str(int(scale * 100000)))
+    autofit.set("lnSpcReduction", "10000")
+    body_pr.append(autofit)
 
 
 def _set_text(shape, text: str):
@@ -43,6 +122,9 @@ def _set_text(shape, text: str):
         ref_run.text = text
     else:
         para.text = text
+
+    _strip_highlight(tf)
+    _fit_text(shape)
 
 
 def _set_bullet_list(shape, items: list[str]):
@@ -89,6 +171,10 @@ def _set_bullet_list(shape, items: list[str]):
             r_elem.find(qn("a:t")).text = item
         new_p.append(r_elem)
         parent.append(new_p)
+
+    tf.word_wrap = True
+    _strip_highlight(tf)
+    _fit_text(shape)
 
 
 def _replace_xyz(prs: Presentation, company_name: str):
