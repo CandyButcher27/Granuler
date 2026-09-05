@@ -77,20 +77,57 @@ def _orientation(photo: dict) -> str:
     return "square"
 
 
-def build_prompt(photo: dict) -> str:
+# Some template pictures are diagrams carrying data, not stock photography, so
+# a "photograph of ..." prompt is wrong for them. Keyed by template slide.
+SPECIAL_PROMPTS = {
+    6: (
+        "A clean isometric staircase diagram of five technology maturity bands, dark "
+        "background, thin light outlines, rising left to right: \"0-25 Critical Risk\", "
+        "\"26-40 Fragile Environment\", \"41-60 Developing Environment\", "
+        "\"61-75 Managed Environment\", \"76-90 Mature Digital Operations\", "
+        "\"91-100 Digital Leader\". Highlight ONLY the {band_range} step in bright green "
+        "and label that step \"{company}\". Every other step stays dim and unlabelled. "
+        "No other company name anywhere in the image."
+    ),
+}
+
+# The steps drawn on the diagram, which are its own bands rather than the
+# scoring bands in pptx_generator - the artwork splits the bottom of the range
+# in two where the score calculation does not.
+_BANDS = [(26, "0-25"), (41, "26-40"), (61, "41-60"), (76, "61-75"), (91, "76-90")]
+
+
+def band_range_for(score: float | None) -> str:
+    if score is None:
+        return "41-60"
+    for edge, label in _BANDS:
+        if score < edge:
+            return label
+    return "91-100"
+
+
+def build_prompt(photo: dict, company: str = "", score: float | None = None) -> str:
+    special = SPECIAL_PROMPTS.get(photo.get("slide"))
+    if special:
+        return special.format(
+            company=company or "the client company",
+            band_range=band_range_for(score),
+        )
     subject = photo["title"] or "strategic technology advisory"
+    about = f" for {company}" if company else ""
     return (
-        f"A photograph illustrating \"{subject}\" for a technology maturity assessment "
-        f"presentation. {STYLE_DIRECTION} "
+        f"A photograph illustrating \"{subject}\"{about}, for a technology maturity "
+        f"assessment presentation. {STYLE_DIRECTION} "
         f"Compose for a {_orientation(photo)} crop."
     )
 
 
-def image_brief_pdf(photos: list[dict] | None = None) -> bytes:
+def image_brief_pdf(photos: list[dict] | None = None, company: str = "",
+                    score: float | None = None) -> bytes:
     photos = collect_photos() if photos is None else photos
     story = _heading(
         "Image Replacement Brief",
-        "Granuler assessment template",
+        company or "Granuler assessment template",
         "One prompt per stock photograph still carried by the template",
     )
 
@@ -102,7 +139,8 @@ def image_brief_pdf(photos: list[dict] | None = None) -> bytes:
     story.append(Paragraph(
         f"{len(photos)} photographs need replacing. Generate each at the pixel size given, "
         "then drop it into the numbered slide in place of the existing picture. Every other "
-        "image in the template is an icon or rule and needs no change.",
+        "image in the template is an icon or rule and needs no change. Slide numbers are the "
+        "template's, not the generated deck's, which is shorter because unused slides are removed.",
         STYLES["body"],
     ))
     story.append(Spacer(1, 10))
@@ -119,7 +157,7 @@ def image_brief_pdf(photos: list[dict] | None = None) -> bytes:
             Paragraph(f"{photo['slide']}<br/><font size=7 color='#666666'>{photo['title']}</font>",
                       STYLES["cell"]),
             Paragraph(f"{photo['width_px']} × {photo['height_px']} px", STYLES["cell"]),
-            Paragraph(build_prompt(photo), STYLES["cell"]),
+            Paragraph(build_prompt(photo, company, score), STYLES["cell"]),
         ])
     story.append(_table(rows, [17 * mm, 38 * mm, 23 * mm, 96 * mm]))
 

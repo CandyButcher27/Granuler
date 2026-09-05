@@ -163,12 +163,18 @@ def logo():
 
 
 @app.get("/image-brief")
-def image_brief():
-    """The prompts for the stock photographs the template still carries."""
+def image_brief(company_name: str = Query(""), overall_score: float | None = Query(None)):
+    """The prompts for the stock photographs the template still carries.
+
+    Naming the client matters for the maturity-band diagram, whose replacement
+    has to carry this company's name and this company's band.
+    """
+    name = "Granuler_Image_Brief" if not company_name else \
+        f"{re.sub(r'[^A-Za-z0-9]+', '_', company_name).strip('_')}_Image_Brief"
     return Response(
-        content=image_brief_pdf(),
+        content=image_brief_pdf(company=company_name, score=overall_score),
         media_type="application/pdf",
-        headers={"Content-Disposition": 'attachment; filename="Granuler_Image_Brief.pdf"'},
+        headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'},
     )
 
 

@@ -496,9 +496,11 @@ def generate_report(
     # are actually shipping — a gated slide still holds template text until it
     # is removed, and flagging that would be a false positive.
     _delete_slides(prs, to_delete)
+    _remove_foreign_images(prs)
 
     _assert_no_placeholder(prs)
     _assert_no_foreign_content(prs, intake, pillars)
+    _assert_no_foreign_images(prs)
 
     buf = io.BytesIO()
     prs.save(buf)
@@ -853,6 +855,49 @@ def _assert_no_placeholder(prs: Presentation, placeholder: str = "the client com
 # template was cut from. Any of these surviving into a finished deck means a
 # slide was not filled — unless the client's own input mentions the same thing,
 # which is why the check is made against the input corpus rather than absolutely.
+# Pictures that carry another client's identity in their pixels. The text
+# guards cannot see inside a raster, so these are matched by content hash and
+# removed outright. The maturity-band staircase on slide 6 is captioned
+# "(Uni-Tech)" and highlights that client's band, so it shipped a different
+# company's name and score to every reader.
+_FOREIGN_IMAGE_SHA1 = {
+    "f6a948972937531bbc043358b66dccc5977578f0": "slide 6 maturity staircase captioned (Uni-Tech)",
+}
+
+
+def _remove_foreign_images(prs: Presentation) -> list[str]:
+    """Delete pictures whose pixels name another client. Returns what went."""
+    removed = []
+    for slide in prs.slides:
+        for shape in list(slide.shapes):
+            if shape.__class__.__name__ != "Picture":
+                continue
+            try:
+                sha1 = shape.image.sha1
+            except ValueError:
+                continue
+            if sha1 in _FOREIGN_IMAGE_SHA1:
+                shape._element.getparent().remove(shape._element)
+                removed.append(_FOREIGN_IMAGE_SHA1[sha1])
+    return removed
+
+
+def _assert_no_foreign_images(prs: Presentation) -> None:
+    """No picture naming another client may survive to the saved deck."""
+    for number, slide in enumerate(prs.slides, start=1):
+        for shape in slide.shapes:
+            if shape.__class__.__name__ != "Picture":
+                continue
+            try:
+                sha1 = shape.image.sha1
+            except ValueError:
+                continue
+            if sha1 in _FOREIGN_IMAGE_SHA1:
+                raise AssertionError(
+                    f"slide {number} still carries {_FOREIGN_IMAGE_SHA1[sha1]}"
+                )
+
+
 _TEMPLATE_FINGERPRINTS = (
     "sap", "s/4hana", "1709", "fiori", "sydler", "uni-tech", "unitech",
     "windows 7", "windows 11", "pune", "mrp", "bom", "nas box",
