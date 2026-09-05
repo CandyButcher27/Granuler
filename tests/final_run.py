@@ -51,12 +51,20 @@ def call(method: str, path: str, body: dict | None = None, timeout: int = 600) -
             payload.write_text(json.dumps(body), encoding="utf-8")
             cmd += ["-X", method, "-H", "Content-Type: application/json",
                     "--data-binary", f"@{payload}"]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        status = result.stdout.strip()
-        if status != "200":
-            detail = out.read_bytes()[:400] if out.exists() else b""
-            raise SystemExit(f"{method} {path} -> {status or result.stderr.strip()} {detail!r}")
-        return out.read_bytes()
+        # The host drops a connection now and then, which curl reports as 000.
+        # A dropped connection is not a failed assessment, so retry it.
+        for attempt in range(4):
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            status = result.stdout.strip()
+            if status == "200":
+                return out.read_bytes()
+            if status not in ("000", "502", "503", "504"):
+                break
+            if attempt < 3:
+                print(f"   {status or 'connection dropped'}, retrying in 20s")
+                time.sleep(20)
+        detail = out.read_bytes()[:400] if out.exists() else b""
+        raise SystemExit(f"{method} {path} -> {status or result.stderr.strip()} {detail!r}")
 
 
 def save(name: str, content: bytes | dict) -> Path:
