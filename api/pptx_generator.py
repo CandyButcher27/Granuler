@@ -496,7 +496,8 @@ def generate_report(
     # are actually shipping — a gated slide still holds template text until it
     # is removed, and flagging that would be a false positive.
     _delete_slides(prs, to_delete)
-    _remove_foreign_images(prs)
+    _remove_foreign_images(prs, intake.get("company_name", ""), overall_score)
+    _note_image_prompts(prs, intake.get("company_name", ""), overall_score)
 
     _assert_no_placeholder(prs)
     _assert_no_foreign_content(prs, intake, pillars)
@@ -865,8 +866,13 @@ _FOREIGN_IMAGE_SHA1 = {
 }
 
 
-def _remove_foreign_images(prs: Presentation) -> list[str]:
-    """Delete pictures whose pixels name another client. Returns what went."""
+def _remove_foreign_images(prs: Presentation, company: str = "",
+                           overall_score: float | None = None) -> list[str]:
+    """Delete pictures whose pixels name another client.
+
+    A labelled placeholder is left in the gap, because otherwise the slide just
+    looks blank and nothing says a replacement is owed.
+    """
     removed = []
     for slide in prs.slides:
         for shape in list(slide.shapes):
@@ -876,10 +882,97 @@ def _remove_foreign_images(prs: Presentation) -> list[str]:
                 sha1 = shape.image.sha1
             except ValueError:
                 continue
-            if sha1 in _FOREIGN_IMAGE_SHA1:
-                shape._element.getparent().remove(shape._element)
-                removed.append(_FOREIGN_IMAGE_SHA1[sha1])
+            if sha1 not in _FOREIGN_IMAGE_SHA1:
+                continue
+            left, top, width, height = shape.left, shape.top, shape.width, shape.height
+            shape._element.getparent().remove(shape._element)
+            _add_image_placeholder(slide, left, top, width, height)
+            _note_replacement(slide, width, height, company, overall_score)
+            removed.append(_FOREIGN_IMAGE_SHA1[sha1])
     return removed
+
+
+def _add_image_placeholder(slide, left, top, width, height) -> None:
+    """A visible, client-safe marker where a replacement image belongs."""
+    from pptx.dml.color import RGBColor
+    from pptx.enum.text import PP_ALIGN
+
+    box = slide.shapes.add_textbox(left, top, width, height)
+    box.name = "Image Placeholder"
+    fill = box.fill
+    fill.solid()
+    fill.fore_color.rgb = RGBColor(0xF2, 0xF8, 0xFA)
+    line = box.line
+    line.color.rgb = RGBColor(0x9F, 0xC4, 0xCC)
+    line.width = Pt(1)
+
+    frame = box.text_frame
+    frame.word_wrap = True
+    px_w = round(width / 914400 * 150)
+    px_h = round(height / 914400 * 150)
+    para = frame.paragraphs[0]
+    para.alignment = PP_ALIGN.CENTER
+    run = para.add_run()
+    run.text = (
+        f"Image goes here — {px_w} x {px_h} px\n"
+        "The prompt for it is in this slide's speaker notes."
+    )
+    run.font.size = Pt(14)
+    run.font.bold = True
+    run.font.color.rgb = RGBColor(0x14, 0x60, 0x6F)
+
+
+def _note_replacement(slide, width, height, company: str, overall_score: float | None) -> None:
+    """The staircase prompt, in the notes of the slide it belongs to.
+
+    The placeholder is a text box rather than a picture, so the photo collector
+    does not see it and it would otherwise be the one slide with a gap and no
+    prompt attached.
+    """
+    from .image_brief import build_prompt
+
+    photo = {
+        "slide": 6,  # the template slide this graphic belongs to
+        "title": "How to Interpret the Score",
+        "width_in": width / 914400,
+        "height_in": height / 914400,
+    }
+    notes = slide.notes_slide.notes_text_frame
+    existing = notes.text.strip()
+    lines = [
+        "REPLACE THIS PICTURE - it named a different client and was removed.",
+        f"Render at {round(width / 914400 * 150)} x {round(height / 914400 * 150)} px.",
+        "",
+        "Prompt:",
+        build_prompt(photo, company, overall_score),
+    ]
+    if existing:
+        lines += ["", "---", existing]
+    notes.text = "\n".join(lines)
+
+
+def _note_image_prompts(prs: Presentation, company: str, overall_score: float) -> int:
+    """Write each replaceable photograph's prompt into its own speaker notes.
+
+    Pointing at these slides from an outside document does not work: the deck
+    drops gated slides so its numbering is not the template's, and several
+    titles are rewritten per client. Notes travel inside the file, so they
+    cannot drift, and a viewer never sees them.
+    """
+    from .image_brief import build_prompt, photos_in
+
+    photos = photos_in(prs)
+    slides = list(prs.slides)
+    for photo in photos:
+        notes = slides[photo["slide"] - 1].notes_slide.notes_text_frame
+        existing = notes.text.strip()
+        notes.text = (
+            f"IMAGE {photo['number']} OF {len(photos)} — REPLACE THIS PICTURE\n"
+            f"Render at {photo['width_px']} x {photo['height_px']} px.\n\n"
+            f"Prompt:\n{build_prompt(photo, company, overall_score)}\n"
+            + (f"\n---\n{existing}" if existing else "")
+        )
+    return len(photos)
 
 
 def _assert_no_foreign_images(prs: Presentation) -> None:

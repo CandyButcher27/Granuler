@@ -42,7 +42,17 @@ def _slide_title(slide) -> str:
 
 
 def collect_photos(template_path: Path | None = None) -> list[dict]:
-    presentation = Presentation(str(template_path or TEMPLATE_PATH))
+    return photos_in(Presentation(str(template_path or TEMPLATE_PATH)))
+
+
+def photos_in(presentation) -> list[dict]:
+    """The replaceable photographs in an open deck.
+
+    Takes a Presentation rather than a path so it can run against the deck a
+    client actually receives. Slide numbers there differ from the template's -
+    gated slides are removed - and five of the titles are rewritten per client,
+    so neither is a reliable way to point at a slide from outside the file.
+    """
     photos = []
     for slide_number, slide in enumerate(presentation.slides, start=1):
         for shape in slide.shapes:

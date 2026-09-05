@@ -91,3 +91,29 @@ def test_the_leaking_picture_never_reaches_a_generated_deck():
             except ValueError:
                 pass
     assert not (surviving & set(_FOREIGN_IMAGE_SHA1))
+
+
+def test_every_replaceable_picture_carries_its_prompt_in_the_slide_notes():
+    """Nothing outside the file can point at these slides reliably.
+
+    The deck drops gated slides, so its numbering is not the template's, and
+    five of the eighteen titles are rewritten per client. Notes travel inside
+    the file and a viewer never sees them.
+    """
+    from pptx import Presentation
+
+    from api.image_brief import photos_in
+    from api.pptx_generator import _note_image_prompts, TEMPLATE_PATH
+
+    prs = Presentation(str(TEMPLATE_PATH))
+    counted = _note_image_prompts(prs, "Nihaar Equipments", 41.5)
+    assert counted == len(photos_in(prs))
+
+    noted = [
+        s for s in prs.slides
+        if s.has_notes_slide and "REPLACE THIS PICTURE" in s.notes_slide.notes_text_frame.text
+    ]
+    assert len(noted) == counted
+    first = noted[0].notes_slide.notes_text_frame.text
+    assert "Render at" in first and "px" in first
+    assert "Prompt:" in first
