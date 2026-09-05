@@ -30,6 +30,10 @@ _LINE_SPACING = 1.2
 # clip overflow anyway, so a slight spill into the whitespace below reads
 # better than 7pt type. Text needing more than this is left alone.
 _MIN_FONT_SCALE = 0.8
+_MIN_LABEL_SCALE = 0.6
+# Beyond this a text frame is prose, not a card title.
+_LABEL_WORDS = 6
+_WIDTH_SAFETY = 1.06
 
 
 def _strip_highlight(tf):
@@ -54,7 +58,7 @@ def _text_height_pt(tf, width_pt: float) -> float:
 
     total = 0.0
     for para in tf.paragraphs:
-        size = next((r.font.size.pt for r in para.runs if r.font.size), None) or _DEFAULT_PT
+        size, face = _para_font(para)
         words = "".join(r.text for r in para.runs).split()
         if not words:
             total += size * _LINE_SPACING
@@ -62,13 +66,43 @@ def _text_height_pt(tf, width_pt: float) -> float:
         lines, current = 1, ""
         for word in words:
             trial = f"{current} {word}".strip()
-            if current and stringWidth(trial, "Helvetica", size) > width_pt:
+            if current and stringWidth(trial, face, size) * _WIDTH_SAFETY > width_pt:
                 lines += 1
                 current = word
             else:
                 current = trial
         total += lines * size * _LINE_SPACING
     return total
+
+
+def _para_font(para) -> tuple[float, str]:
+    """The size and reportlab face to measure a paragraph with.
+
+    Card titles are bold, and bold Arial is a few percent wider than regular.
+    Measuring them with the regular face under-reads the width, which is enough
+    to let a title wrap onto the description below it.
+    """
+    size = next((r.font.size.pt for r in para.runs if r.font.size), None) or _DEFAULT_PT
+    bold = any(r.font.bold for r in para.runs)
+    return size, "Helvetica-Bold" if bold else "Helvetica"
+
+
+def _label_width_scale(tf, width_pt: float) -> float:
+    """How much a short label must shrink to stay on one line."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    worst = 1.0
+    for para in tf.paragraphs:
+        size, face = _para_font(para)
+        text = "".join(r.text for r in para.runs).strip()
+        if not text:
+            continue
+        # PowerPoint's own metrics differ slightly from reportlab's, and a
+        # near-miss still wraps, so leave a little headroom.
+        needed = stringWidth(text, face, size) * _WIDTH_SAFETY
+        if needed > width_pt:
+            worst = min(worst, width_pt / needed)
+    return worst
 
 
 def _fit_text(shape):
@@ -84,11 +118,16 @@ def _fit_text(shape):
     height_pt = (shape.height - tf.margin_top - tf.margin_bottom) / 12700
     if width_pt <= 0 or height_pt <= 0:
         return
-    needed = _text_height_pt(tf, width_pt)
-    if needed <= height_pt:
-        return
-    scale = height_pt / needed
-    if scale < _MIN_FONT_SCALE:
+    if len(tf.text.split()) <= _LABEL_WORDS:
+        # A card title sits in a one-line box directly above its own
+        # description, so wrapping does not spill into whitespace - it lands on
+        # the text below. What matters here is keeping it on one line, not the
+        # box height, which for these boxes is barely a line tall to begin with.
+        scale, floor = _label_width_scale(tf, width_pt), _MIN_LABEL_SCALE
+    else:
+        needed = _text_height_pt(tf, width_pt)
+        scale, floor = height_pt / needed, _MIN_FONT_SCALE
+    if scale >= 1.0 or scale < floor:
         return
     body_pr = tf._txBody.find(qn("a:bodyPr"))
     if body_pr is None:

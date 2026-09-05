@@ -25,6 +25,13 @@ for line in (ROOT / ".env").read_text(encoding="utf-8").splitlines():
         key, value = line.split("=", 1)
         os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
 
+# The routes sit behind the single-user gate, and it fails closed. These are
+# only ever the local smoke run's credentials; the deployed ones come from the
+# host's environment.
+os.environ.setdefault("GRANULER_USER", "smoke")
+os.environ.setdefault("GRANULER_PASSWORD", "smoke")
+SMOKE_AUTH = (os.environ["GRANULER_USER"], os.environ["GRANULER_PASSWORD"])
+
 from fastapi.testclient import TestClient  # noqa: E402
 from pptx import Presentation  # noqa: E402
 
@@ -36,6 +43,7 @@ FORBIDDEN = _TEMPLATE_FINGERPRINTS + ("the client company",)
 
 def main(notes_path: str, company: str) -> int:
     client = TestClient(app)
+    client.auth = SMOKE_AUTH
     notes = Path(notes_path).read_text(encoding="utf-8")
 
     start = time.time()
