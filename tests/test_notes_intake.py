@@ -68,3 +68,21 @@ def test_pillar_definitions_match_the_frontend():
     for ui, cfg in zip(frontend, PILLAR_DEFINITIONS):
         assert ui["name"] == cfg["name"]
         assert ui["subtopics"] == cfg["subtopics"]
+
+
+def test_each_output_panel_owns_its_own_pdf_button():
+    """One download button per panel, wired to that panel's deliverable.
+
+    All three buttons were once nested inside the quick-wins header, so the
+    first visible button downloaded the proposal and the other panels had none.
+    """
+    source = DEMO_HTML.read_text(encoding="utf-8")
+    for panel_id, kind in [
+        ("panel-quick-wins", "quick-wins"),
+        ("panel-risk-register", "risk-register"),
+        ("panel-proposal", "proposal"),
+    ]:
+        start = source.index(f'id="{panel_id}"')
+        panel = source[start:source.index('<div class="output-body"', start)]
+        calls = re.findall(r"downloadPdf\('([a-z-]+)'", panel)
+        assert calls == [kind], f"{panel_id} has {calls}"

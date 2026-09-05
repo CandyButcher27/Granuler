@@ -7,6 +7,7 @@ the container, which the free plan cannot install.
 Palette matches demo.html and the PPTX template.
 """
 import io
+from pathlib import Path
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
@@ -56,17 +57,40 @@ STYLES = {
 }
 
 
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "granuler_logo.png"
+LOGO_HEIGHT = 9 * mm
+
+
+def _draw_logo(canvas, height) -> float:
+    """Draw the logo mark and return the x where the strapline starts.
+
+    Falls back to the GRANULER wordmark when no logo file is present, so the
+    header is never blank on a deployment that has not shipped the asset.
+    """
+    if LOGO_PATH.exists():
+        from reportlab.lib.utils import ImageReader
+
+        logo = ImageReader(str(LOGO_PATH))
+        iw, ih = logo.getSize()
+        width = LOGO_HEIGHT * iw / ih
+        canvas.drawImage(logo, 18 * mm, height - 12.6 * mm, width=width,
+                         height=LOGO_HEIGHT, mask="auto")
+        return 18 * mm + width + 4 * mm
+    canvas.setFillColor(GOLD)
+    canvas.setFont("Helvetica-Bold", 12)
+    canvas.drawString(18 * mm, height - 10.5 * mm, "GRANULER")
+    return 46 * mm
+
+
 def _header_footer(canvas, doc):
     canvas.saveState()
     width, height = A4
     canvas.setFillColor(NAVY)
     canvas.rect(0, height - 16 * mm, width, 16 * mm, stroke=0, fill=1)
-    canvas.setFillColor(GOLD)
-    canvas.setFont("Helvetica-Bold", 12)
-    canvas.drawString(18 * mm, height - 10.5 * mm, "GRANULER")
+    strapline_x = _draw_logo(canvas, height)
     canvas.setFillColor(colors.HexColor("#8899bb"))
     canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(46 * mm, height - 10.2 * mm, "Strategic Technology Advisory")
+    canvas.drawString(strapline_x, height - 10.2 * mm, "Strategic Technology Advisory")
     canvas.setFillColor(GREY)
     canvas.setFont("Helvetica", 7.5)
     canvas.drawRightString(width - 18 * mm, 10 * mm, f"Page {doc.page}")
