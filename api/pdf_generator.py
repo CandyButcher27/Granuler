@@ -119,6 +119,19 @@ def _heading(title: str, company: str, strapline: str) -> list:
     ]
 
 
+def _urgency_style(urgency: str) -> ParagraphStyle:
+    """Colour the urgency cell.
+
+    A table TEXTCOLOR command does not reach text inside a Paragraph - the
+    paragraph's own style wins - so the colour has to be set on the style.
+    """
+    colour = URGENCY_COLOURS.get(urgency.strip().lower())
+    if not colour:
+        return STYLES["cell"]
+    return ParagraphStyle(f"urgency-{urgency.strip().lower()}", parent=STYLES["cell"],
+                          fontName="Helvetica-Bold", textColor=colour)
+
+
 def _table(rows, widths, align_top=True):
     table = Table(rows, colWidths=widths, repeatRows=1, hAlign="LEFT")
     style = [
@@ -188,24 +201,17 @@ def risk_register_pdf(company: str, data: dict) -> bytes:
         Paragraph("MITIGATION", STYLES["cellhead"]),
         Paragraph("URGENCY", STYLES["cellhead"]),
     ]]
-    urgency_rows = []
-    for index, risk in enumerate(risks, start=1):
+    for risk in risks:
         urgency = str(risk.get("urgency", ""))
-        urgency_rows.append((index, urgency.lower()))
         rows.append([
             Paragraph(risk.get("risk_statement", ""), STYLES["cell"]),
             Paragraph(risk.get("pillar", ""), STYLES["cell"]),
             Paragraph(risk.get("business_impact", ""), STYLES["cell"]),
             Paragraph(risk.get("mitigation", ""), STYLES["cell"]),
-            Paragraph(urgency, STYLES["cell"]),
+            Paragraph(urgency, _urgency_style(urgency)),
         ])
 
-    table = _table(rows, [45 * mm, 27 * mm, 44 * mm, 44 * mm, 14 * mm])
-    for row_index, urgency in urgency_rows:
-        colour = URGENCY_COLOURS.get(urgency)
-        if colour:
-            table.setStyle(TableStyle([("TEXTCOLOR", (4, row_index), (4, row_index), colour)]))
-    story.append(table)
+    story.append(_table(rows, [43 * mm, 27 * mm, 42 * mm, 42 * mm, 20 * mm]))
 
     story.append(Spacer(1, 10))
     story.append(Paragraph(f"{len(risks)} risks recorded.", STYLES["subtitle"]))
