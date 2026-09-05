@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from api.pdf_generator import RENDERERS  # noqa: E402
+from api.pdf_generator import RENDERERS, STYLES, URGENCY_COLOURS, _urgency_style  # noqa: E402
 
 QUICK_WINS = {
     "process": [{"action": "Standardise the order-to-delivery handoff.", "impact": "High", "timeline": "0-30 days"}],
@@ -63,3 +63,17 @@ def test_renders_with_empty_payload(kind):
     """A thin or failed LLM response must not 500 the download."""
     render, _ = RENDERERS[kind]
     assert render("Nihaar Equipments", {}).startswith(b"%PDF-")
+
+
+@pytest.mark.parametrize("urgency", sorted(URGENCY_COLOURS))
+def test_urgency_colour_reaches_the_cell(urgency):
+    """Urgency must be coloured on the paragraph style, not the table.
+
+    A table TEXTCOLOR command does not reach text inside a Paragraph, so the
+    colouring silently did nothing and every urgency rendered plain black.
+    """
+    assert _urgency_style(urgency.upper()).textColor == URGENCY_COLOURS[urgency]
+
+
+def test_unknown_urgency_falls_back_to_the_plain_cell():
+    assert _urgency_style("Whenever") is STYLES["cell"]

@@ -15,7 +15,7 @@
   }
 
   header {
-    background: #0d1b3e;
+    background: #123c48;
     color: white;
     padding: 18px 40px;
     display: flex;
@@ -26,14 +26,14 @@
     z-index: 100;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
-  header .logo { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #c9a84c; }
-  header .tagline { font-size: 12px; color: #8899bb; margin-top: 2px; }
+  header .logo img { height: 34px; display: block; }
+  header .tagline { font-size: 12px; color: #9fc4cc; margin-top: 2px; }
   header .spacer { flex: 1; }
-  header .badge { background: #1e3a6e; color: #8ab4f8; padding: 4px 12px; border-radius: 20px; font-size: 11px; }
+  header .badge { background: #17505e; color: #a5dbe4; padding: 4px 12px; border-radius: 20px; font-size: 11px; }
 
   .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
 
-  .page-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; color: #0d1b3e; }
+  .page-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; color: #123c48; }
   .page-subtitle { color: #666; margin-bottom: 32px; }
 
   .section-card {
@@ -44,7 +44,7 @@
     overflow: hidden;
   }
   .section-header {
-    background: #0d1b3e;
+    background: #123c48;
     color: white;
     padding: 14px 24px;
     display: flex;
@@ -52,8 +52,8 @@
     gap: 10px;
   }
   .section-header .num {
-    background: #c9a84c;
-    color: #0d1b3e;
+    background: linear-gradient(90deg, #5cbcd4, #5cb28d);
+    color: #ffffff;
     width: 26px; height: 26px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -94,7 +94,7 @@
   }
   .field input:focus, .field textarea:focus, .field select:focus {
     outline: none;
-    border-color: #1e3a8a;
+    border-color: #14606f;
     background: white;
   }
   .field textarea { resize: vertical; min-height: 72px; }
@@ -107,7 +107,7 @@
     overflow: hidden;
   }
   .pillar-header {
-    background: #f0f4ff;
+    background: #eaf6f8;
     padding: 12px 18px;
     display: flex;
     align-items: center;
@@ -115,9 +115,9 @@
     cursor: pointer;
     user-select: none;
   }
-  .pillar-header:hover { background: #e5ebff; }
+  .pillar-header:hover { background: #dbeff3; }
   .pillar-num {
-    background: #1e3a8a;
+    background: #14606f;
     color: white;
     width: 22px; height: 22px;
     border-radius: 4px;
@@ -127,8 +127,8 @@
   }
   .pillar-name { font-weight: 600; font-size: 13px; flex: 1; }
   .pillar-score-badge {
-    background: #dbeafe;
-    color: #1e40af;
+    background: #d3ecf1;
+    color: #14606f;
     padding: 2px 10px;
     border-radius: 12px;
     font-size: 12px;
@@ -140,7 +140,7 @@
 
   table.subtopic-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
   table.subtopic-table th {
-    background: #f8f9ff;
+    background: #f5fafb;
     color: #555;
     font-size: 11px;
     font-weight: 600;
@@ -171,8 +171,8 @@
     transition: all 0.12s;
     display: flex; align-items: center; justify-content: center;
   }
-  .score-btn:hover { border-color: #1e3a8a; color: #1e3a8a; }
-  .score-btn.active { background: #1e3a8a; border-color: #1e3a8a; color: white; }
+  .score-btn:hover { border-color: #14606f; color: #14606f; }
+  .score-btn.active { background: #14606f; border-color: #14606f; color: white; }
   .score-btn.s1.active { background: #dc2626; border-color: #dc2626; }
   .score-btn.s2.active { background: #ea580c; border-color: #ea580c; }
   .score-btn.s3.active { background: #ca8a04; border-color: #ca8a04; }
@@ -200,7 +200,7 @@
     background: #fafbfd;
     color: #333;
   }
-  .notes-input:focus { outline: none; border-color: #1e3a8a; }
+  .notes-input:focus { outline: none; border-color: #14606f; }
 
   /* Submit area */
   .submit-area {
@@ -217,8 +217,8 @@
   .submit-area .info span { color: #666; font-size: 13px; }
 
   #generateBtn {
-    background: #c9a84c;
-    color: #0d1b3e;
+    background: linear-gradient(90deg, #5cbcd4, #5cb28d);
+    color: #ffffff;
     border: none;
     border-radius: 8px;
     padding: 14px 32px;
@@ -231,7 +231,7 @@
     transition: background 0.15s, transform 0.1s;
     white-space: nowrap;
   }
-  #generateBtn:hover { background: #b8962e; transform: translateY(-1px); }
+  #generateBtn:hover { background: linear-gradient(90deg, #4dafc8, #4da67f); transform: translateY(-1px); }
   #generateBtn:active { transform: translateY(0); }
   #generateBtn:disabled { background: #ccc; color: #888; cursor: not-allowed; transform: none; }
 
@@ -285,7 +285,7 @@
     gap: 10px;
   }
   .deliverable-card .d-icon { font-size: 28px; }
-  .deliverable-card .d-title { font-size: 15px; font-weight: 700; color: #0d1b3e; }
+  .deliverable-card .d-title { font-size: 15px; font-weight: 700; color: #123c48; }
   .deliverable-card .d-desc { font-size: 12px; color: #666; line-height: 1.5; flex: 1; }
   .d-btn {
     border: none; border-radius: 7px; padding: 10px 16px;
@@ -293,7 +293,7 @@
     transition: background 0.15s; display: flex; align-items: center; gap: 6px;
   }
   .d-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .d-btn-qw  { background: #dbeafe; color: #1e40af; }
+  .d-btn-qw  { background: #d3ecf1; color: #1e40af; }
   .d-btn-qw:hover:not(:disabled)  { background: #bfdbfe; }
   .d-btn-rr  { background: #fce7f3; color: #9d174d; }
   .d-btn-rr:hover:not(:disabled)  { background: #fbcfe8; }
@@ -315,7 +315,7 @@
   }
   .output-panel.visible { display: block; }
   .output-header {
-    background: #0d1b3e; color: white;
+    background: #123c48; color: white;
     padding: 12px 20px;
     display: flex; align-items: center; justify-content: space-between;
     font-size: 14px; font-weight: 600;
@@ -324,8 +324,8 @@
 
   /* Quick wins output */
   .qw-category { margin-bottom: 20px; }
-  .qw-category h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #1e3a8a; margin-bottom: 10px; }
-  .qw-item { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; padding: 10px 12px; background: #f8f9ff; border-radius: 6px; }
+  .qw-category h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #14606f; margin-bottom: 10px; }
+  .qw-item { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; padding: 10px 12px; background: #f5fafb; border-radius: 6px; }
   .qw-item .qw-timeline { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
   .qw-item .qw-impact-high { background: #fee2e2; color: #991b1b; }
   .qw-item .qw-impact-med  { background: #fef9c3; color: #854d0e; }
@@ -333,7 +333,7 @@
 
   /* Risk register output */
   .risk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .risk-table th { background: #f0f4ff; color: #1e3a8a; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 8px 12px; text-align: left; border-bottom: 2px solid #e8ecf5; }
+  .risk-table th { background: #eaf6f8; color: #14606f; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 8px 12px; text-align: left; border-bottom: 2px solid #e8ecf5; }
   .risk-table td { padding: 10px 12px; border-bottom: 1px solid #f0f2f8; vertical-align: top; }
   .urgency-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
   .u-critical { background: #fee2e2; color: #991b1b; }
@@ -343,7 +343,7 @@
   /* Proposal output */
   .proposal-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f0f2f8; }
   .proposal-section:last-child { border-bottom: none; margin-bottom: 0; }
-  .proposal-section h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #0d1b3e; margin-bottom: 8px; }
+  .proposal-section h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #123c48; margin-bottom: 8px; }
   .proposal-section p { font-size: 13px; line-height: 1.7; color: #333; }
   .proposal-cta { background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 14px 18px; }
   .proposal-cta p { color: #166534; font-weight: 500; }
@@ -356,14 +356,14 @@
     padding: 12px 18px; margin-bottom: 20px;
     flex-wrap: wrap;
   }
-  .session-bar .sb-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #0d1b3e; margin-right: 4px; }
+  .session-bar .sb-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #123c48; margin-right: 4px; }
   .sb-btn {
     border: 1.5px solid #dde3ef; background: #fafbfd; color: #1a1a2e;
     border-radius: 7px; padding: 8px 14px;
     font-size: 12.5px; font-weight: 600; cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
   }
-  .sb-btn:hover { border-color: #1e3a8a; background: #f0f4ff; color: #1e3a8a; }
+  .sb-btn:hover { border-color: #14606f; background: #eaf6f8; color: #14606f; }
   .sb-btn.danger:hover { border-color: #dc2626; background: #fef2f2; color: #991b1b; }
   .sb-spacer { flex: 1; }
   .sb-status { font-size: 12px; color: #888; }
@@ -379,7 +379,7 @@
     font-size: 12.5px; line-height: 1.6; color: #1a1a2e;
     background: #fafbfd; resize: vertical;
   }
-  .notes-pane textarea:focus { outline: none; border-color: #1e3a8a; background: white; }
+  .notes-pane textarea:focus { outline: none; border-color: #14606f; background: white; }
   .notes-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
   .notes-privacy {
     font-size: 11.5px; color: #854d0e;
@@ -387,7 +387,7 @@
     padding: 8px 12px; margin-bottom: 12px; line-height: 1.5;
   }
   #analyseBtn {
-    background: #1e3a8a; color: white; border: none; border-radius: 7px;
+    background: #14606f; color: white; border: none; border-radius: 7px;
     padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
   }
   #analyseBtn:hover:not(:disabled) { background: #1a3170; }
@@ -406,13 +406,37 @@
   }
   .pdf-btn:hover:not(:disabled) { background: rgba(255,255,255,0.28); }
   .pdf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .output-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+  /* Calculated rating summary under the checklist */
+  .score-summary {
+    margin-top: 18px; border: 1px solid #e2e8f0; border-radius: 10px;
+    background: #f8fafc; padding: 14px 16px;
+  }
+  .ss-title {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.6px;
+    text-transform: uppercase; color: #64748b; margin-bottom: 8px;
+  }
+  .ss-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ss-table td { padding: 5px 0; border-bottom: 1px solid #eef2f7; }
+  .ss-table td:last-child { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ss-table td.ss-missing { color: #94a3b8; font-weight: 500; }
+  .ss-overall {
+    display: flex; align-items: center; gap: 10px; margin-top: 12px;
+    padding-top: 12px; border-top: 2px solid #e2e8f0; font-size: 14px; color: #123c48;
+  }
+  .ss-overall strong { margin-left: auto; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .ss-band {
+    background: #14606f; color: white; border-radius: 999px;
+    padding: 3px 10px; font-size: 11.5px; font-weight: 600;
+  }
 </style>
 </head>
 <body>
 
 <header>
   <div>
-    <div class="logo">GRANULER</div>
+    <div class="logo"><img src="/logo.png" alt="Granuler"></div>
     <div class="tagline">Strategic Technology Advisory</div>
   </div>
   <div class="spacer"></div>
@@ -592,6 +616,16 @@
           <span><span class="dot" style="background:#0d6efd"></span> 5 — Optimised</span>
         </div>
         <div id="pillarsContainer"></div>
+
+        <div class="score-summary" id="scoreSummary">
+          <div class="ss-title">Calculated Rating</div>
+          <table class="ss-table"><tbody id="ssRows"></tbody></table>
+          <div class="ss-overall">
+            <span>Overall Maturity Score</span>
+            <strong><span id="ssOverall">—</span> / 100</strong>
+            <span class="ss-band" id="ssBand">—</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -612,7 +646,11 @@
   <!-- SECTION 3: Additional Deliverables -->
   <div style="margin-top:8px; margin-bottom:12px;">
     <div class="page-title" style="font-size:18px; margin-bottom:4px;">Additional Deliverables</div>
-    <div class="page-subtitle">Fill the form above first, then generate any of these independently.</div>
+    <div class="page-subtitle">
+      Fill the form above first, then generate any of these independently.
+      The <a href="/image-brief">image replacement brief</a> needs no form data — it lists the
+      stock photographs the template still carries, with a prompt and pixel size for each.
+    </div>
   </div>
 
   <div class="deliverables-grid">
@@ -643,7 +681,10 @@
   <div class="output-panel" id="panel-quick-wins">
     <div class="output-header">
       <span>⚡ Quick Wins Report — <span id="qw-company"></span></span>
-      <span style="display:flex;align-items:center;gap:10px"><span style="display:flex;align-items:center;gap:10px"><span style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;opacity:0.7">Generated by AI</span><button type="button" class="pdf-btn" onclick="downloadPdf('proposal', this)">⬇ Download PDF</button></span><button type="button" class="pdf-btn" onclick="downloadPdf('risk-register', this)">⬇ Download PDF</button></span><button type="button" class="pdf-btn" onclick="downloadPdf('quick-wins', this)">⬇ Download PDF</button></span>
+      <span class="output-actions">
+        <span style="font-size:11px;opacity:0.7">Generated by AI</span>
+        <button type="button" class="pdf-btn" onclick="downloadPdf('quick-wins', this)">⬇ Download PDF</button>
+      </span>
     </div>
     <div class="output-body" id="qw-body"></div>
   </div>
@@ -651,7 +692,10 @@
   <div class="output-panel" id="panel-risk-register">
     <div class="output-header">
       <span>🛡️ Risk Register — <span id="rr-company"></span></span>
-      <span style="font-size:11px;opacity:0.7">Generated by AI</span>
+      <span class="output-actions">
+        <span style="font-size:11px;opacity:0.7">Generated by AI</span>
+        <button type="button" class="pdf-btn" onclick="downloadPdf('risk-register', this)">⬇ Download PDF</button>
+      </span>
     </div>
     <div class="output-body" id="rr-body"></div>
   </div>
@@ -659,7 +703,10 @@
   <div class="output-panel" id="panel-proposal">
     <div class="output-header">
       <span>📋 CIO Advisory Proposal — <span id="pr-company"></span></span>
-      <span style="font-size:11px;opacity:0.7">Generated by AI</span>
+      <span class="output-actions">
+        <span style="font-size:11px;opacity:0.7">Generated by AI</span>
+        <button type="button" class="pdf-btn" onclick="downloadPdf('proposal', this)">⬇ Download PDF</button>
+      </span>
     </div>
     <div class="output-body" id="pr-body"></div>
   </div>
@@ -798,7 +845,9 @@ function buildPillars() {
       </div>
     `;
     container.appendChild(block);
-    pillar.subtopics.forEach((_, si) => setScore(pi, si, 3));
+    // Deliberately not seeded. Pre-selecting 3 on all forty subtopics made an
+    // untouched form read as a completed assessment scoring 60/100, and left
+    // no way to tell a considered 3 from one nobody had looked at.
   });
 }
 
@@ -848,8 +897,11 @@ function collectState() {
   const fd = new FormData(document.getElementById("assessmentForm"));
   const intake = {};
   for (const [k, v] of fd.entries()) intake[k] = v;
+  // null, not 3, for a subtopic nobody has scored. Saving the default made an
+  // untouched form come back from a reload looking deliberately scored: every
+  // pillar showed a confident 6.0 / 10 that no one had chosen.
   const pillarsState = PILLARS.map((p, pi) => ({
-    scores: p.subtopics.map((_, si) => (scores[pi] && scores[pi][si]) || 3),
+    scores: p.subtopics.map((_, si) => (scores[pi] && scores[pi][si] !== undefined) ? scores[pi][si] : null),
     impacts: p.subtopics.map((_, si) => document.getElementById(`impact-${pi}-${si}`)?.value || "Medium"),
     priorities: p.subtopics.map((_, si) => document.getElementById(`priority-${pi}-${si}`)?.value || "Medium"),
     notes: p.subtopics.map((_, si) => document.getElementById(`notes-${pi}-${si}`)?.value || ""),
@@ -866,7 +918,7 @@ function applyState(state) {
   }
   if (typeof notes === "string") document.getElementById("workingNotes").value = notes;
   (pillars || []).forEach((st, pi) => {
-    (st.scores || []).forEach((score, si) => setScore(pi, si, score));
+    (st.scores || []).forEach((score, si) => { if (score !== null && score !== undefined) setScore(pi, si, score); });
     (st.impacts || []).forEach((v, si) => { const el = document.getElementById(`impact-${pi}-${si}`); if (el) el.value = v; });
     (st.priorities || []).forEach((v, si) => { const el = document.getElementById(`priority-${pi}-${si}`); if (el) el.value = v; });
     (st.notes || []).forEach((v, si) => { const el = document.getElementById(`notes-${pi}-${si}`); if (el) el.value = v; });
@@ -1034,22 +1086,50 @@ function importNotesFile(input) {
   reader.readAsText(file);
 }
 
-function updateBadge(pi) {
-  const pillar = PILLARS[pi];
+function pillarScoreOf(pi) {
   let total = 0, count = 0;
-  pillar.subtopics.forEach((_, si) => {
+  PILLARS[pi].subtopics.forEach((_, si) => {
     if (scores[pi] && scores[pi][si] !== undefined) {
       total += scores[pi][si];
       count++;
     }
   });
+  return { score: count ? (total / (count * 5)) * 10 : null, rated: count };
+}
+
+function updateBadge(pi) {
+  const { score } = pillarScoreOf(pi);
   const badge = document.getElementById(`badge-${pi}`);
-  if (badge && count > 0) {
-    const pillarScore = (total / (count * 5)) * 10;
-    badge.textContent = pillarScore.toFixed(1) + " / 10";
-    badge.style.background = pillarScore >= 7 ? "#dcfce7" : pillarScore >= 5 ? "#fef9c3" : "#fee2e2";
-    badge.style.color = pillarScore >= 7 ? "#166534" : pillarScore >= 5 ? "#854d0e" : "#991b1b";
+  if (badge && score !== null) {
+    badge.textContent = score.toFixed(1) + " / 10";
+    badge.style.background = score >= 7 ? "#dcfce7" : score >= 5 ? "#fef9c3" : "#fee2e2";
+    badge.style.color = score >= 7 ? "#166534" : score >= 5 ? "#854d0e" : "#991b1b";
   }
+  renderSummary();
+}
+
+// The calculated rating, mirrored from the server-side formula in
+// pptx_generator.py: pillar = sum/(n*5)*10, overall = mean(pillars)*10.
+// Pillars with nothing rated are excluded so a half-filled form still totals.
+function renderSummary() {
+  const rows = document.getElementById("ssRows");
+  if (!rows) return;
+  const rated = [];
+  rows.innerHTML = PILLARS.map((p, pi) => {
+    const { score, rated: n } = pillarScoreOf(pi);
+    if (score !== null) rated.push(score);
+    const cell = score === null
+      ? `<td class="ss-missing">— / 10</td>`
+      : `<td>${score.toFixed(1)} / 10${n < p.subtopics.length ? ` <span class="ss-missing">(${n}/${p.subtopics.length})</span>` : ""}</td>`;
+    return `<tr><td>${pi + 1}. ${p.name}</td>${cell}</tr>`;
+  }).join("");
+
+  const overall = rated.length ? (rated.reduce((a, b) => a + b, 0) / rated.length) * 10 : null;
+  document.getElementById("ssOverall").textContent = overall === null ? "—" : overall.toFixed(1);
+  const band = document.getElementById("ssBand");
+  band.textContent = overall === null ? "—" : bandFor(overall);
+  band.style.background = overall === null ? "#94a3b8"
+    : overall < 40 ? "#991b1b" : overall < 60 ? "#9a3412" : overall < 76 ? "#14606f" : "#166534";
 }
 
 function togglePillar(pi) {
@@ -1115,8 +1195,26 @@ function showStatus(type, msg) {
     : msg;
 }
 
+// Every unscored subtopic is submitted as 3, so a form nobody scored still
+// produces a plausible 60/100 report. Say so before spending the AI call.
+function unscoredCount() {
+  let missing = 0;
+  PILLARS.forEach((p, pi) => p.subtopics.forEach((_, si) => {
+    if (!(scores[pi] && scores[pi][si] !== undefined)) missing++;
+  }));
+  return missing;
+}
+
 document.getElementById("assessmentForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const missing = unscoredCount();
+  if (missing) {
+    const total = PILLARS.reduce((n, p) => n + p.subtopics.length, 0);
+    const message = missing === total
+      ? "Nothing has been scored yet. Every subtopic would be sent as 3 out of 5, which produces a 60/100 report that reflects no assessment at all.\n\nGenerate anyway?"
+      : `${missing} of ${total} subtopics have not been scored. Each one is sent as 3 out of 5, which will pull the result toward the middle.\n\nGenerate anyway?`;
+    if (!confirm(message)) return;
+  }
   const btn = document.getElementById("generateBtn");
   btn.disabled = true;
   btn.textContent = "⏳ Generating...";
@@ -1241,6 +1339,7 @@ async function analyseNotes() {
 
 buildPillars();
 loadFromStorage();
+renderSummary();
 updateNotesStatus();
 
 // Save on any intake field change

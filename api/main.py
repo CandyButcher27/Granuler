@@ -1,10 +1,13 @@
+import os
 import re
+import secrets
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel, Field
 
 from .llm import (
@@ -23,6 +26,7 @@ from .llm import (
     generate_prior_work_content,
     extract_from_notes,
 )
+from .image_brief import image_brief_pdf
 from .pdf_generator import RENDERERS as PDF_RENDERERS
 from .pptx_generator import (
     generate_report,
@@ -33,7 +37,40 @@ from .pptx_generator import (
     SUBTOPICS_PER_PILLAR,
 )
 
-app = FastAPI(title="Granuler Report API")
+# Single-user gate. One username and password, supplied by the environment.
+# `/health` stays open so the host's health check does not need credentials.
+_AUTH_USER = os.environ.get("GRANULER_USER", "")
+_AUTH_PASSWORD = os.environ.get("GRANULER_PASSWORD", "")
+_OPEN_PATHS = {"/health"}
+_basic = HTTPBasic(auto_error=False)
+
+
+def _require_login(request: Request, creds: HTTPBasicCredentials = Depends(_basic)) -> None:
+    """Reject anyone who is not the single configured user.
+
+    Fails closed: with no password configured the service refuses everything
+    rather than serving the assessment tool to the open internet. Both halves
+    are always compared so a wrong username costs the same time as a wrong
+    password.
+    """
+    if request.url.path in _OPEN_PATHS:
+        return
+    if not _AUTH_PASSWORD:
+        raise HTTPException(
+            status_code=503,
+            detail="Server is not configured for sign-in. Set GRANULER_USER and GRANULER_PASSWORD.",
+        )
+    user_ok = secrets.compare_digest((creds.username if creds else ""), _AUTH_USER)
+    password_ok = secrets.compare_digest((creds.password if creds else ""), _AUTH_PASSWORD)
+    if not (user_ok and password_ok):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": 'Basic realm="Granuler"'},
+        )
+
+
+app = FastAPI(title="Granuler Report API", dependencies=[Depends(_require_login)])
 
 # Client identity is never sent to the LLM. Prompts use this placeholder;
 # _restore_name() swaps it back to the real company name in the LLM's JSON
@@ -107,6 +144,7 @@ class ReportRequest(BaseModel):
 
 
 DEMO_HTML_PATH = Path(__file__).resolve().parent.parent / "demo.html"
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "granuler_logo.png"
 
 
 @app.get("/")
@@ -117,6 +155,21 @@ def demo():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/logo.png")
+def logo():
+    return FileResponse(LOGO_PATH, media_type="image/png")
+
+
+@app.get("/image-brief")
+def image_brief():
+    """The prompts for the stock photographs the template still carries."""
+    return Response(
+        content=image_brief_pdf(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="Granuler_Image_Brief.pdf"'},
+    )
 
 
 @app.post("/generate-report")
@@ -339,13 +392,15 @@ def _parse_request(req: ReportRequest):
 def quick_wins(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
-    pillars_raw, _, _, _, _ = _parse_request(req)
+    pillars_raw, _, _, overall_score, maturity_band = _parse_request(req)
     result = _restore_name(generate_quick_wins(
         company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         business_goals=req.business_goals,
         pain_points=req.pain_points,
         pillars=pillars_raw,
+        overall_score=overall_score,
+        maturity_band=maturity_band,
     ), req.company_name)
     return _deliverable_response("quick-wins", req.company_name, result, format)
 
@@ -354,11 +409,13 @@ def quick_wins(req: ReportRequest, format: str = Query("json", pattern="^(json|p
 def risk_register(req: ReportRequest, format: str = Query("json", pattern="^(json|pdf)$")):
     if len(req.pillars) != PILLAR_COUNT:
         raise HTTPException(status_code=422, detail=f"Exactly {PILLAR_COUNT} pillars required")
-    pillars_raw, _, _, _, _ = _parse_request(req)
+    pillars_raw, _, _, overall_score, maturity_band = _parse_request(req)
     result = _restore_name(generate_risk_register(
         company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         pillars=pillars_raw,
+        overall_score=overall_score,
+        maturity_band=maturity_band,
     ), req.company_name)
     return _deliverable_response("risk-register", req.company_name, result, format)
 

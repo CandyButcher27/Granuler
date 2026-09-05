@@ -4,9 +4,10 @@ ReportLab is pure Python, so this works on Render's free plan with no system
 packages. The 54-slide deck stays PPTX: converting it would need LibreOffice in
 the container, which the free plan cannot install.
 
-Palette matches demo.html and the PPTX template.
+Palette follows the logo and the slide template: teal to green on white.
 """
 import io
+from pathlib import Path
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
@@ -23,12 +24,16 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-NAVY = colors.HexColor("#0d1b3e")
-GOLD = colors.HexColor("#c9a84c")
-BLUE = colors.HexColor("#1e3a8a")
+# Sampled from the logo: the brand runs teal to green on white, which is also
+# how the slide template is bordered. The deliverables follow the deck rather
+# than carrying a palette of their own.
+TEAL = colors.HexColor("#5cbcd4")
+GREEN = colors.HexColor("#5cb28d")
+INK = colors.HexColor("#14606f")
+NAVY = colors.HexColor("#123c48")
 GREY = colors.HexColor("#666666")
-RULE = colors.HexColor("#e8ecf5")
-BAND = colors.HexColor("#f8f9ff")
+RULE = colors.HexColor("#dceef1")
+BAND = colors.HexColor("#f5fafb")
 
 URGENCY_COLOURS = {
     "critical": colors.HexColor("#991b1b"),
@@ -45,32 +50,72 @@ STYLES = {
     "subtitle": ParagraphStyle("subtitle", parent=_base["Normal"], fontName="Helvetica",
                                fontSize=10, leading=14, textColor=GREY, spaceAfter=14),
     "h2": ParagraphStyle("h2", parent=_base["Normal"], fontName="Helvetica-Bold",
-                         fontSize=10.5, leading=13, textColor=BLUE, spaceBefore=14,
+                         fontSize=10.5, leading=13, textColor=INK, spaceBefore=14,
                          spaceAfter=7),
     "body": ParagraphStyle("body", parent=_base["Normal"], fontName="Helvetica",
                            fontSize=9.5, leading=14, textColor=colors.HexColor("#1a1a2e")),
     "cell": ParagraphStyle("cell", parent=_base["Normal"], fontName="Helvetica",
                            fontSize=8.5, leading=12, textColor=colors.HexColor("#1a1a2e")),
     "cellhead": ParagraphStyle("cellhead", parent=_base["Normal"], fontName="Helvetica-Bold",
-                               fontSize=8, leading=10, textColor=BLUE),
+                               fontSize=8, leading=10, textColor=INK),
 }
+
+
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "granuler_logo.png"
+LOGO_HEIGHT = 9 * mm
+
+
+def _draw_logo(canvas, height) -> float:
+    """Draw the logo mark and return the x where the strapline starts.
+
+    Falls back to the GRANULER wordmark when no logo file is present, so the
+    header is never blank on a deployment that has not shipped the asset.
+    """
+    if LOGO_PATH.exists():
+        from reportlab.lib.utils import ImageReader
+
+        logo = ImageReader(str(LOGO_PATH))
+        iw, ih = logo.getSize()
+        width = LOGO_HEIGHT * iw / ih
+        canvas.drawImage(logo, 18 * mm, height - 12.6 * mm, width=width,
+                         height=LOGO_HEIGHT, mask="auto")
+        return 18 * mm + width + 4 * mm
+    canvas.setFillColor(INK)
+    canvas.setFont("Helvetica-Bold", 12)
+    canvas.drawString(18 * mm, height - 10.5 * mm, "GRANULER")
+    return 46 * mm
+
+
+def _gradient_rule(canvas, x, y, width, thickness, steps=48):
+    """Draw the brand's teal-to-green rule.
+
+    Stepped rather than a true gradient: a real one needs its own clip path,
+    and at this thickness the steps are not visible.
+    """
+    for step in range(steps):
+        blend = step / (steps - 1)
+        canvas.setFillColorRGB(
+            TEAL.red + (GREEN.red - TEAL.red) * blend,
+            TEAL.green + (GREEN.green - TEAL.green) * blend,
+            TEAL.blue + (GREEN.blue - TEAL.blue) * blend,
+        )
+        canvas.rect(x + width * step / steps, y, width / steps + 0.5, thickness,
+                    stroke=0, fill=1)
 
 
 def _header_footer(canvas, doc):
     canvas.saveState()
     width, height = A4
-    canvas.setFillColor(NAVY)
-    canvas.rect(0, height - 16 * mm, width, 16 * mm, stroke=0, fill=1)
-    canvas.setFillColor(GOLD)
-    canvas.setFont("Helvetica-Bold", 12)
-    canvas.drawString(18 * mm, height - 10.5 * mm, "GRANULER")
-    canvas.setFillColor(colors.HexColor("#8899bb"))
+    strapline_x = _draw_logo(canvas, height)
+    canvas.setFillColor(GREY)
     canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(46 * mm, height - 10.2 * mm, "Strategic Technology Advisory")
+    canvas.drawString(strapline_x, height - 10.2 * mm, "Strategic Technology Advisory")
+    _gradient_rule(canvas, 0, height - 16 * mm, width, 1.6 * mm)
     canvas.setFillColor(GREY)
     canvas.setFont("Helvetica", 7.5)
     canvas.drawRightString(width - 18 * mm, 10 * mm, f"Page {doc.page}")
     canvas.drawString(18 * mm, 10 * mm, doc.granuler_footer)
+    _gradient_rule(canvas, 18 * mm, 15 * mm, width - 36 * mm, 0.4 * mm)
     canvas.restoreState()
 
 
@@ -95,10 +140,23 @@ def _heading(title: str, company: str, strapline: str) -> list:
     ]
 
 
+def _urgency_style(urgency: str) -> ParagraphStyle:
+    """Colour the urgency cell.
+
+    A table TEXTCOLOR command does not reach text inside a Paragraph - the
+    paragraph's own style wins - so the colour has to be set on the style.
+    """
+    colour = URGENCY_COLOURS.get(urgency.strip().lower())
+    if not colour:
+        return STYLES["cell"]
+    return ParagraphStyle(f"urgency-{urgency.strip().lower()}", parent=STYLES["cell"],
+                          fontName="Helvetica-Bold", textColor=colour)
+
+
 def _table(rows, widths, align_top=True):
     table = Table(rows, colWidths=widths, repeatRows=1, hAlign="LEFT")
     style = [
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f4ff")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#eaf6f8")),
         ("LINEBELOW", (0, 0), (-1, 0), 1.2, RULE),
         ("LINEBELOW", (0, 1), (-1, -2), 0.5, RULE),
         ("VALIGN", (0, 0), (-1, -1), "TOP" if align_top else "MIDDLE"),
@@ -164,24 +222,17 @@ def risk_register_pdf(company: str, data: dict) -> bytes:
         Paragraph("MITIGATION", STYLES["cellhead"]),
         Paragraph("URGENCY", STYLES["cellhead"]),
     ]]
-    urgency_rows = []
-    for index, risk in enumerate(risks, start=1):
+    for risk in risks:
         urgency = str(risk.get("urgency", ""))
-        urgency_rows.append((index, urgency.lower()))
         rows.append([
             Paragraph(risk.get("risk_statement", ""), STYLES["cell"]),
             Paragraph(risk.get("pillar", ""), STYLES["cell"]),
             Paragraph(risk.get("business_impact", ""), STYLES["cell"]),
             Paragraph(risk.get("mitigation", ""), STYLES["cell"]),
-            Paragraph(urgency, STYLES["cell"]),
+            Paragraph(urgency, _urgency_style(urgency)),
         ])
 
-    table = _table(rows, [45 * mm, 27 * mm, 44 * mm, 44 * mm, 14 * mm])
-    for row_index, urgency in urgency_rows:
-        colour = URGENCY_COLOURS.get(urgency)
-        if colour:
-            table.setStyle(TableStyle([("TEXTCOLOR", (4, row_index), (4, row_index), colour)]))
-    story.append(table)
+    story.append(_table(rows, [43 * mm, 27 * mm, 42 * mm, 42 * mm, 20 * mm]))
 
     story.append(Spacer(1, 10))
     story.append(Paragraph(f"{len(risks)} risks recorded.", STYLES["subtitle"]))
