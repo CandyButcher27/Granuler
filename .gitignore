@@ -45,3 +45,6 @@ outputs/
 pictures/
 Nihaar equipments Notes.txt
 SESSION_SUMMARY.md
+
+# Full end-to-end run artifacts. Client discovery data - never committed.
+final_output/
