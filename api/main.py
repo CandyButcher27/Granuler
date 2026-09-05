@@ -144,6 +144,7 @@ class ReportRequest(BaseModel):
 
 
 DEMO_HTML_PATH = Path(__file__).resolve().parent.parent / "demo.html"
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "granuler_logo.png"
 
 
 @app.get("/")
@@ -154,6 +155,11 @@ def demo():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/logo.png")
+def logo():
+    return FileResponse(LOGO_PATH, media_type="image/png")
 
 
 @app.get("/image-brief")
