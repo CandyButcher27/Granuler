@@ -1187,6 +1187,22 @@ function buildPayload(form) {
   };
 }
 
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+// A blob URL the user can click. Kept alive deliberately: revoking it as soon
+// as the click fires is what leaves a dead link in the status box.
+function downloadLink(blob, filename, label) {
+  const url = URL.createObjectURL(blob);
+  return `<a href="${url}" download="${filename}" style="font-weight:600">${label}</a>`;
+}
+
 function showStatus(type, msg) {
   const box = document.getElementById("statusBox");
   box.style.display = "block";
@@ -1236,15 +1252,10 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
     }
 
     const blob = await resp.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
     const company = payload.company_name.replace(/\s+/g, "_");
-    a.download = `${company}_Granuler_Assessment.pptx`;
-    a.click();
-    URL.revokeObjectURL(url);
+    saveBlob(blob, `${company}_Granuler_Assessment.pptx`);
 
-    showStatus("success", `✅ Report generated and downloaded — <strong>${company}_Granuler_Assessment.pptx</strong>. Fetching the image brief...`);
+    showStatus("success", `✅ <strong>${company}_Granuler_Assessment.pptx</strong> downloaded. Fetching the image brief...`);
 
     // The API is stateless, so the brief is read back out of the deck's own
     // speaker notes rather than regenerated from the form.
@@ -1253,20 +1264,23 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
         `${API_BASE}/image-brief?company_name=${encodeURIComponent(payload.company_name)}`,
         { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: blob }
       );
-      if (briefResp.ok) {
-        const briefBlob = await briefResp.blob();
-        const briefUrl = URL.createObjectURL(briefBlob);
-        const b = document.createElement("a");
-        b.href = briefUrl;
-        b.download = `${company}_Image_Brief.pdf`;
-        b.click();
-        URL.revokeObjectURL(briefUrl);
-        showStatus("success", `✅ Downloaded <strong>${company}_Granuler_Assessment.pptx</strong> and <strong>${company}_Image_Brief.pdf</strong>`);
-      } else {
-        showStatus("success", `✅ Downloaded <strong>${company}_Granuler_Assessment.pptx</strong>. The image brief could not be generated — the prompts are still in each slide's speaker notes.`);
-      }
+      if (!briefResp.ok) throw new Error(`image brief returned ${briefResp.status}`);
+      const briefBlob = await briefResp.blob();
+      const briefName = `${company}_Image_Brief.pdf`;
+      // Chrome blocks a second automatic download from the same page unless the
+      // user has allowed it, and gives the page no way to know. So the link is
+      // always offered, and the status never claims a save it cannot see.
+      saveBlob(briefBlob, briefName);
+      showStatus("success",
+        `✅ <strong>${company}_Granuler_Assessment.pptx</strong> downloaded.<br>` +
+        `The image brief is ready: ${downloadLink(briefBlob, briefName, "⬇ Download " + briefName)}. ` +
+        `Your browser may have saved it already — if not, use the link. ` +
+        `Every prompt is also in that slide's speaker notes.`);
     } catch (briefErr) {
-      showStatus("success", `✅ Downloaded <strong>${company}_Granuler_Assessment.pptx</strong>. The image brief could not be generated — the prompts are still in each slide's speaker notes.`);
+      showStatus("success",
+        `✅ <strong>${company}_Granuler_Assessment.pptx</strong> downloaded. ` +
+        `The image brief could not be produced (${briefErr.message}) — the prompts are still ` +
+        `in each slide's speaker notes.`);
     }
   } catch (err) {
     showStatus("error", `❌ ${err.message}`);
