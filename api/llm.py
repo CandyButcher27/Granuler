@@ -85,93 +85,6 @@ Return JSON with exactly these keys:
     return _call(prompt)
 
 
-def generate_narrative_content(
-    company_name: str,
-    industry: str,
-    business_goals: str,
-    pain_points: str,
-    pillar_summaries: list[dict],
-    worst_pillar_name: str,
-    worst_pillar_score: float,
-    worst_pillar_subtopics: list[dict],
-) -> dict:
-    subtopic_lines = "\n".join(
-        f"- {s['subtopic']}: score {s['score']}/5, impact {s['impact']}, priority {s.get('priority','')}, notes: {s.get('current_state_notes','')}"
-        for s in worst_pillar_subtopics
-    )
-    prompt = f"""You are writing narrative slide content for a technology maturity consulting report for {company_name}, a {industry} company.
-
-Business Goals: {business_goals}
-Pain Points: {pain_points}
-
-Weakest pillar: {worst_pillar_name} ({worst_pillar_score:.1f}/10)
-Weakest pillar subtopics:
-{subtopic_lines}
-
-Return JSON with exactly these keys:
-
-business_drivers: list of exactly 4 objects each with "title" (3-6 words, max 24 characters, specific to this company\'s goals) and "description" (1 sentence, max 14 words). These are the key technology-driven business priorities derived from the company's goals and pain points.
-
-weakest_pillar_issues: list of exactly 3 objects each with "title" (2-4 words, max 24 characters) and "description" (1 sentence, max 14 words). Specific issues found in {worst_pillar_name} based on the subtopic scores.
-
-weakest_pillar_impacts: list of exactly 2 objects each with "emoji_title" (emoji + short title e.g. "⏱ Slower Decisions") and "description" (1 sentence, max 14 words). Business impact of the gaps in {worst_pillar_name}.
-
-quick_wins: list of exactly 6 objects each with "title" (3-5 words, max 24 characters) and "description" (1 sentence, max 14 words). High-impact actions achievable within 30-60 days based on the pain points and pillar gaps.
-
-inaction_risks: list of exactly 4 objects each with "emoji_title" (use 🔴 for critical, 🟠 for high, 🟡 for medium + short title) and "description" (1 sentence, max 14 words). Specific risks of not acting on the identified technology gaps.
-
-inaction_closing: 1 sentence on how delay compounds the cost of inaction.
-
-expected_outcomes: list of exactly 4 objects each with "title" (2-4 words, max 24 characters) and "description" (1 sentence, max 14 words). Measurable business outcomes from executing the transformation roadmap."""
-    return _call(prompt)
-
-
-def generate_global_content(
-    company_name: str,
-    industry: str,
-    overall_score: float,
-    maturity_band: str,
-    business_goals: str,
-    pain_points: str,
-    pillar_summaries: list[dict],
-) -> dict:
-    pillar_lines = "\n".join(
-        f"- {p['name']}: {p['score']:.1f}/10" for p in pillar_summaries
-    )
-    weakest = sorted(pillar_summaries, key=lambda x: x["score"])[:3]
-    strongest = sorted(pillar_summaries, key=lambda x: x["score"])[-1]
-    prompt = f"""You are writing content for a technology maturity assessment report for {company_name}, a {industry} company.
-
-Overall Score: {overall_score:.1f}/100
-Maturity Band: {maturity_band}
-Business Goals: {business_goals}
-Pain Points: {pain_points}
-
-Pillar scores:
-{pillar_lines}
-
-Strongest pillar: {strongest['name']} ({strongest['score']:.1f}/10)
-Weakest pillars: {', '.join(p['name'] for p in weakest)}
-
-Return JSON with exactly these keys:
-- maturity_summary: 2-3 sentences for the maturity summary slide (executive-level, specific to this company)
-- score_interpretation: 1-2 sentences, max 28 words framing what the score means (reference the band and key implications)
-- strongest_area: one sentence about the strongest pillar
-- weakest_areas: one sentence naming the weakest pillars and what they need
-- high_priority_risks: list of 3-4 high priority risk bullet strings
-- high_impact_risks: list of 2-3 high impact risk bullet strings
-- medium_risks: list of 3-4 medium risk bullet strings
-- days_1_30: list of 3 actions for days 1-30 of the 90-day plan
-- days_31_60: list of 3 actions for days 31-60
-- days_61_90: list of 3 actions for days 61-90
-- q1_items: list of 3 Q1 roadmap items
-- q2_items: list of 3 Q2 roadmap items
-- q3_items: list of 2 Q3 roadmap items
-- q4_items: list of 2 Q4 roadmap items
-- closing_message: 1 sentence company-specific closing statement"""
-    return _call(prompt)
-
-
 _QW_IMPACT = {"critical": "High", "high": "High", "medium": "Medium", "low": "Medium"}
 _QW_TIMELINE = {"0-30 days", "31-60 days"}
 _QW_CATEGORIES = ("process", "controls", "reporting", "automation")
@@ -400,78 +313,6 @@ CRITICAL GROUNDING RULES - the report is presented to a paying client:
   inventing a specific product or number."""
 
 
-def generate_company_context(
-    company_name: str,
-    industry: str,
-    business_goals: str,
-    pain_points: str,
-    core_systems: str,
-    major_risks: str,
-    locations: str,
-    products: str,
-    industries_served: str,
-    overall_score: float,
-    maturity_band: str,
-) -> dict:
-    prompt = f"""You are writing the opening context slides of a technology maturity assessment report.
-
-{_context_block(company_name, industry, business_goals, pain_points, core_systems, major_risks)}
-Client Locations: {locations}
-Products / Services: {products}
-Industries Served: {industries_served}
-Overall Score: {overall_score:.1f}/100 ({maturity_band})
-{_GROUNDING}
-
-Return JSON with exactly these keys:
-
-hook_question: a single provocative boardroom question as the opening slide title, 8-16 words, ending in a question mark, derived from this company's actual goals.
-growth_framing: 2 sentences on what this company has built and what the next phase of growth demands.
-growth_pillars: list of exactly 4 short labels (2-4 words each) naming the capabilities this company needs to scale, derived from its goals.
-strategic_shift: one line in the form "The strategic shift: A -> B" describing this company's transition.
-company_description: 1-2 sentences, max 28 words describing what the company does and where it operates. MUST use the locations given above and no other location.
-expansion_note: 1 sentence on the company's growth direction and why technology maturity matters to it.
-products_line: the products or services as a single line, separated by " | ". Use only what is given; if none given, describe the offering generically in 3-6 words. Never return an empty string.
-industries_line: the industries served as a single line separated by " | ". Use what is given; if none is given, derive them from the products and the industry named above. Never return an empty string and never name an industry the input does not support.
-score_interpretation_long: 2 sentences explaining what the maturity score means for this company, naming the band.
-delivery_description: 1 sentence describing how Granuler delivers fractional CIO advisory to this client, referencing the client's location.
-delivery_note: 1 sentence on why transformation needs strategic leadership rather than onsite IT support.
-delivery_modes: list of exactly 3 objects with "title" (2-4 words, max 24 characters) and "description" (1 sentence, max 14 words) covering how the engagement runs.
-path_forward_intro: 1-2 sentences, max 28 words on the foundation this company already has.
-path_forward_items: list of exactly 3 objects with "title" (2-4 words, max 24 characters) and "description" (1 sentence, max 14 words) naming what the company gains from the transformation.
-path_forward_closing: 1 sentence on Granuler's role in guiding it."""
-    return _call(prompt)
-
-
-def generate_architecture_content(
-    company_name: str,
-    industry: str,
-    business_goals: str,
-    pain_points: str,
-    core_systems: str,
-    major_risks: str,
-    maturity_band: str,
-) -> dict:
-    prompt = f"""You are writing the technology architecture slides of a technology maturity assessment report.
-
-{_context_block(company_name, industry, business_goals, pain_points, core_systems, major_risks)}
-Maturity Band: {maturity_band}
-{_GROUNDING}
-
-Return JSON with exactly these keys:
-
-current_arch: list of exactly 4 objects with "title" (1-3 words, an architecture layer e.g. "Core Systems", "Data Storage", "Reporting", "Infrastructure") and "description" (one short phrase, max 12 words, describing the CURRENT state of that layer at this company).
-future_arch: list of exactly 4 objects with "title" and "description" describing the TARGET state of the same four layers, in the same order. Do not name a product that is not in the input.
-journey_intro: 1-2 sentences, max 28 words on the four-stage transformation path.
-journey_stages: list of exactly 4 objects with "title" and "description". Each title must be a 2-5 word stage name, going from current state to fully scaled. Description is 1 sentence each.
-current_layers: list of exactly 3 objects with "title" (2-4 words, max 24 characters) and "description" (one short phrase, max 10 words) describing the current architecture from the foundation upward.
-current_summary: 2 sentences assessing the current architecture and the risk it carries as the company scales.
-current_risks: list of exactly 3 objects with "title" (2-3 words, max 24 characters) and "description" (1 short sentence) naming the weaknesses in the current architecture.
-future_layers: list of exactly 3 objects with "title" and "description" describing the target architecture from the foundation upward.
-future_summary: 2 sentences on what the future architecture delivers.
-future_gains: list of exactly 3 objects with "title" (2-3 words, max 24 characters) and "description" (1 short sentence) naming what improves."""
-    return _call(prompt)
-
-
 def _assessment_detail(pillars: list[dict]) -> str:
     return "\n".join(
         f"- {p['pillar']}: "
@@ -482,213 +323,6 @@ def _assessment_detail(pillars: list[dict]) -> str:
         )
         for p in pillars
     )
-
-
-def generate_findings_content(
-    company_name: str,
-    industry: str,
-    business_goals: str,
-    pain_points: str,
-    core_systems: str,
-    major_risks: str,
-    pillars: list[dict],
-) -> dict:
-    prompt = f"""You are writing the detailed findings slides of a technology maturity assessment report.
-
-{_context_block(company_name, industry, business_goals, pain_points, core_systems, major_risks)}
-
-Assessment detail (score out of 5 per subtopic, with the assessor's notes):
-{_assessment_detail(pillars)}
-{_GROUNDING}
-
-Return JSON with exactly these keys:
-
-security_intro: 1-2 sentences, max 28 words on the security gaps found, grounded in the cybersecurity subtopic scores and notes above.
-security_note: 1 sentence on why these gaps matter to the company's clients or auditors.
-security_findings: list of exactly 4 objects with "title" (2-5 words, max 24 characters) and "description" (1 sentence, max 14 words). Each must correspond to an actual low-scoring cybersecurity subtopic or a risk named in the input.
-reporting_flow: list of exactly 3 objects with "title" (2-4 words, max 24 characters) and "description" (one short phrase, max 10 words) showing the progression from current reporting to the target state.
-reporting_current: list of exactly 3 objects with "title" (2-4 words, max 24 characters) and "description" (1 sentence, max 14 words) describing the current reporting weaknesses.
-reporting_recommendation: 1 sentence recommendation for reporting, beginning "Recommendation: ".
-infra_intro: 1-2 sentences, max 28 words on the infrastructure lifecycle position.
-infra_findings: list of exactly 4 objects with "title" (2-4 words, max 24 characters) and "description" (1 sentence, max 14 words) on infrastructure weaknesses found.
-infra_closing: 1 sentence on what infrastructure modernisation delivers."""
-    return _call(prompt)
-
-
-def generate_conditional_content(
-    company_name: str,
-    industry: str,
-    business_goals: str,
-    pain_points: str,
-    core_systems: str,
-    major_risks: str,
-    pillars: list[dict],
-) -> dict:
-    prompt = f"""You are deciding which OPTIONAL slides belong in a technology maturity assessment
-report for this client, and writing them only where they are genuinely warranted.
-
-{_context_block(company_name, industry, business_goals, pain_points, core_systems, major_risks)}
-
-Assessment detail:
-{_assessment_detail(pillars)}
-{_GROUNDING}
-
-For each of the five blocks below, set "applicable" to true ONLY if the input above gives real
-evidence for it. If you set it to false, the slide is removed from the deck entirely - that is the
-correct and expected outcome when the evidence is not there. Do NOT invent evidence to fill a
-slide. When applicable is false you may leave the other fields as empty strings and empty lists.
-
-Return JSON with exactly these keys:
-
-core_system_risk: object with "applicable" (bool - true only if the input names a specific core
-  business system that is outdated, unsupported, misconfigured or a stated risk), "title" (slide
-  title naming the system, e.g. "Critical ERP Risk: <system named in input>"), "warning" (1-2
-  sentences on why it is an active exposure), "impacts" (list of exactly 3 objects with "title"
-  (2-4 words) and "description" (1 sentence, max 14 words)), "closing" (1 sentence on why addressing it is a
-  strategic priority).
-
-hr_opportunity: object with "applicable" (bool - true only if HR, people, or workforce processes
-  are named as manual, basic or a gap in the input), "intro" (1-2 sentences, max 28 words), "items" (list of
-  exactly 3 objects with "title" (2-5 words, max 24 characters) and "description" (1 sentence, max 14 words)).
-
-vendor_governance: object with "applicable" (bool - true only if the input evidences vendor,
-  partner or IT-spend governance weakness), "title" (slide title, e.g. "Vendor Governance" plus
-  the vendor category if the input names one), "observations" (list of exactly 3 objects with
-  "title" (2-4 words, max 24 characters) and "description" (1 sentence, max 14 words)), "action_taken" (1 sentence on what
-  Granuler will do about it, beginning "Action: ").
-
-quality_process: object with "applicable" (bool - true only if the company manufactures, produces
-  or services a physical product AND quality, traceability or compliance is evidenced as a gap),
-  "intro" (1-2 sentences, max 28 words), "within_systems" (list of exactly 3 objects with "title" and
-  "description" on quality controls inside the core systems), "outside_systems" (list of exactly 3
-  objects with "title" and "description" on quality processes outside the systems).
-
-core_process_observations: object with "applicable" (bool - true only if the input names a core
-  business system whose configuration or process usage is evidenced as a problem), "title" (slide
-  title naming the system, e.g. "<system> Process Observations"), "intro" (1-2 sentences, max 28 words),
-  "findings" (list of exactly 4 objects with "title" (2-4 words, max 24 characters) and "description" (1 sentence, max 14 words))."""
-    return _call(prompt)
-
-
-def generate_roadmap_content(
-    company_name: str,
-    industry: str,
-    business_goals: str,
-    pain_points: str,
-    core_systems: str,
-    major_risks: str,
-    priority_areas: str,
-    pillar_summaries: list[dict],
-) -> dict:
-    pillar_lines = "\n".join(f"- {p['name']}: {p['score']:.1f}/10" for p in pillar_summaries)
-    prompt = f"""You are writing the roadmap slides of a technology maturity assessment report.
-
-{_context_block(company_name, industry, business_goals, pain_points, core_systems, major_risks)}
-Immediate Priority Areas: {priority_areas}
-
-Pillar scores:
-{pillar_lines}
-{_GROUNDING}
-
-Return JSON with exactly these keys:
-
-risk_mapping_intro: 1-2 sentences, max 28 words on how each identified risk maps to a roadmap initiative.
-risk_mapping: list of exactly 5 objects with "risk" (2-4 words naming a risk found in this
-  assessment) and "initiative" (the roadmap initiative that addresses it, max 12 words).
-top_priorities: list of exactly 10 objects with "title" (2-6 words, max 24 characters) and "description" (one line,
-  max 14 words). These are this company's top 10 strategic technology priorities, ordered most
-  urgent first, derived from the lowest-scoring pillars and the stated priority areas.
-roadmap_phases: list of exactly 3 objects with "title" (one word: "Stabilise", "Optimise",
-  "Scale") and "description" (a month range plus 3 focus areas, max 12 words, e.g.
-  "0-3 months: security, infrastructure, policy").
-roadmap_closing: 2 sentences on how the roadmap is sequenced and why.
-timeline_quarters: list of exactly 4 objects with "title" ("Q1 - <2-4 word theme>" through
-  "Q4 - <2-4 word theme>") and "description" (3-4 concrete initiatives separated by " - ")."""
-    return _call(prompt)
-
-
-def generate_closing_content(
-    company_name: str,
-    industry: str,
-    business_goals: str,
-    pain_points: str,
-    core_systems: str,
-    major_risks: str,
-    overall_score: float,
-    maturity_band: str,
-    savings_identified: str,
-) -> dict:
-    if savings_identified:
-        savings_line = f"Savings already identified: {savings_identified}"
-        act_now_rule = "One item may reference the identified savings."
-        stats_rule = "You may use the identified savings as one value."
-    else:
-        savings_line = (
-            "No savings figure has been established yet - do NOT state or imply any monetary amount."
-        )
-        act_now_rule = "Do NOT reference any monetary figure."
-        stats_rule = "Do NOT use a monetary value - use only counts that are true from the input."
-
-    prompt = f"""You are writing the closing and justification slides of a technology maturity
-assessment report.
-
-{_context_block(company_name, industry, business_goals, pain_points, core_systems, major_risks)}
-Overall Score: {overall_score:.1f}/100 ({maturity_band})
-{savings_line}
-{_GROUNDING}
-
-Return JSON with exactly these keys:
-
-why_granuler_intro: 1-2 sentences, max 28 words on what fractional CIO leadership gives this company.
-why_granuler_items: list of exactly 5 objects with "title" (2-5 words, max 24 characters) and "description" (1 sentence, max 14 words) naming what Granuler owns for this client. Ground each one in this company's actual
-  gaps.
-inaction_intro: 1-2 sentences, max 28 words on how technology risk compounds when it is not governed.
-inaction_items: list of exactly 4 objects with "title" (2-5 words, max 24 characters) and "description" (1 sentence, max 14 words)
-  naming what gets worse if this company does nothing. Each must trace to a real gap in the input.
-inaction_principle: 1 sentence stating the underlying principle, beginning "Key principle: ".
-act_now_intro: 1-2 sentences, max 28 words on why this is the right moment to act.
-act_now_items: list of exactly 4 objects with "title" (2-4 words, max 24 characters) and "description" (1 sentence, max 14 words)
-  on what makes acting now advantageous. {act_now_rule}
-closing_stats: list of exactly 3 objects with "value" (a very short figure, max 6 characters),
-  "label" (2-4 words) and "description" (one short phrase, max 12 words). Use only figures that
-  are true from the input: the number of pillars assessed is 10, the roadmap is 12 months.
-  {stats_rule}
-closing_statement: 1 sentence closing statement on technology becoming a strategic enabler."""
-    return _call(prompt)
-
-
-def generate_prior_work_content(
-    company_name: str,
-    industry: str,
-    prior_work: str,
-    savings_identified: str,
-) -> dict:
-    prompt = f"""You are writing the "progress already delivered" slides of a technology maturity
-assessment report. These slides describe work Granuler has ALREADY completed for this client.
-
-Company: {company_name}, a {industry} company.
-
-Work already delivered by Granuler (this is the ONLY source of truth for these slides):
-{prior_work}
-
-Savings identified so far: {savings_identified or "none stated"}
-{_GROUNDING}
-- Describe ONLY the work listed above. Do not add, extrapolate, or invent any additional
-  completed work, vendor transition, or saving. Return fewer items rather than padding the list.
-
-Return JSON with exactly these keys:
-
-progress_intro: 1-2 sentences, max 28 words on the momentum created so far.
-progress_items: list of up to 4 objects with "title" (2-5 words, max 24 characters) and "description" (1 sentence, max 14 words).
-  One per item of delivered work above. Return fewer than 4 if fewer were delivered.
-governance_wins: list of up to 2 objects with "title" (2-6 words, max 24 characters) and "description" (1 sentence, max 14 words)
-  covering delivered work that improved governance or process.
-operational_wins: list of up to 2 objects with "title" (2-6 words, max 24 characters) and "description" (1 sentence, max 14 words)
-  covering delivered work that improved day-to-day operations.
-value_intro: 1-2 sentences, max 28 words on value delivered before roadmap execution began.
-value_stats: list of exactly 3 objects with "value" (max 6 characters), "label" (2-4 words) and
-  "description" (one short phrase, max 12 words). Use only figures true from the input above."""
-    return _call(prompt)
 
 
 PILLAR_DEFINITIONS: list[dict] = _cfg.get("pillars", [])
@@ -793,3 +427,291 @@ pillars: list of exactly {len(PILLAR_DEFINITIONS)} objects, in the checklist ord
         in the notes names this subtopic and you judged it from the wider
         picture, begin with "Inferred: " so the assessor can review it first."""
     return _call(prompt, model=_EXTRACTION_MODEL)
+
+
+# ---------------------------------------------------------------------------
+# Narrative content for the deck. One call per act, fanned out in parallel by
+# api/main.py. Every prompt states its own JSON shape because api/slides.py
+# reads the keys directly - a renamed key is a blank slide.
+# ---------------------------------------------------------------------------
+
+_LENGTH = """
+LENGTH RULES - this is a slide deck, not a document. Text that overflows its box
+is worse than text that is too short:
+- A card title is at most 5 words. A card body is one sentence, under 18 words.
+- A bullet is one line, under 14 words, and starts with a verb where it is an action.
+- A standfirst paragraph is at most 2 sentences, under 40 words.
+- Never write "the client company" more than once per block of text."""
+
+
+def _brief(company_name, industry, business_goals, pain_points, core_systems,
+           major_risks, overall_score, maturity_band, pillar_summaries) -> str:
+    ranked = sorted(pillar_summaries, key=lambda p: p["score"])
+    return f"""Company: {company_name}, a {industry} company.
+Business goals: {business_goals}
+Pain points: {pain_points}
+Core systems in use: {core_systems}
+Major risks already visible: {major_risks}
+Overall technology maturity: {overall_score}/100 ({maturity_band})
+Pillar scores out of 10, worst first:
+""" + "\n".join(f"- {p['name']}: {p['score']}" for p in ranked)
+
+
+def generate_executive(**kw) -> dict:
+    prompt = f"""You are a fractional CIO writing the opening of a technology maturity
+assessment presented to the client's leadership team.
+
+{_brief(**kw)}
+{_GROUNDING}
+{_LENGTH}
+
+Return JSON with exactly these keys:
+- headline: the one question this assessment answers, phrased as a question the
+  CEO would ask, under 14 words. Name the actual tension in THIS business - its
+  own stated goal set against its own pain points. A generic question about
+  improving technology or digital maturity is a failed answer.
+- situation: 2 sentences on where the business stands today.
+- verdict: one sentence stating the maturity band and what it means commercially.
+- findings: list of exactly 3 objects {{"title", "description"}} - the three
+  things leadership most needs to know.
+- moves: list of exactly 3 objects {{"title", "description"}} - the three moves
+  that change the picture, ordered by urgency.
+- stakes: one sentence on the cost of not acting.
+- shift: a "from X to Y" line describing the change this roadmap delivers, e.g.
+  "Reactive firefighting to planned, measured operations". Under 12 words."""
+    return _call(prompt)
+
+
+def generate_context(locations="", products="", industries_served="",
+                     revenue_range="", employee_count="", key_stakeholders="",
+                     change_readiness="", **kw) -> dict:
+    prompt = f"""You are writing the context section of a technology maturity assessment.
+
+{_brief(**kw)}
+Locations: {locations}
+Products: {products}
+Industries served: {industries_served}
+Revenue range: {revenue_range}
+Employee count: {employee_count}
+Stakeholder roles consulted: {key_stakeholders}
+Change readiness: {change_readiness}
+{_GROUNDING}
+{_LENGTH}
+
+Return JSON with exactly these keys:
+- summary: 2 sentences describing what the business does and where it operates.
+- why_now: 2 sentences on why technology maturity matters to this business now.
+- products: list of up to 6 short product or service names, from the input only.
+- industries: list of up to 6 short industry or market names, from the input only.
+- drivers: list of exactly 4 objects {{"title", "description"}} - the leadership
+  priorities the technology estate has to support.
+- voices: list of exactly 4 objects {{"title", "description"}} where title is a
+  stakeholder ROLE (never a person's name) and description is the concern that
+  role raised, drawn from the pain points.
+- question: the single strategic question this assessment sets out to answer,
+  phrased as a question, under 16 words."""
+    return _call(prompt)
+
+
+def generate_findings(pillars, **kw) -> dict:
+    prompt = f"""You are writing the findings section of a technology maturity assessment.
+
+{_brief(**kw)}
+
+Full assessment detail:
+{_assessment_detail(pillars)}
+
+Lowest scoring items, worst first:
+{_ranked_rows(pillars, limit=14)}
+{_GROUNDING}
+{_LENGTH}
+
+Return JSON with exactly these keys:
+- strengths: list of exactly 4 objects {{"title", "description"}} drawn from the
+  HIGHEST scoring subtopics. Say what is genuinely working.
+- gaps: list of exactly 5 objects {{"title", "description", "pillar", "evidence"}}
+  drawn from the LOWEST scoring subtopics. "evidence" is the observed fact
+  behind the score, under 12 words.
+- causes: list of exactly 4 objects {{"title", "description"}} - the underlying
+  causes behind the symptoms, not the symptoms again.
+- inaction: list of exactly 4 objects {{"title", "description"}} - what
+  compounds if nothing changes over the next 12 months.
+- inaction_summary: one sentence on the trajectory if nothing changes."""
+    return _call(prompt)
+
+
+def generate_risks(pillars, **kw) -> dict:
+    prompt = f"""You are building the risk register for a technology maturity assessment.
+
+{_brief(**kw)}
+
+Lowest scoring items, worst first:
+{_ranked_rows(pillars, limit=16)}
+{_GROUNDING}
+{_LENGTH}
+
+Return JSON with exactly one key "risks": a list of exactly 8 objects, ordered
+most severe first, each with:
+- "title": the risk, under 6 words
+- "description": one sentence, under 18 words, on how it shows up in the business
+- "impact": "High", "Medium" or "Low" - business consequence if it materialises
+- "likelihood": "High", "Medium" or "Low" - how likely it is on current evidence
+- "mitigation": the action that reduces it, under 14 words, starting with a verb
+- "owner": a role title that would own it (e.g. "Operations Head"), never a name
+- "horizon": one of "0-30 days", "1-3 months", "3-6 months", "6-12 months"
+
+At least 3 risks must be High impact. Derive impact and likelihood from the
+scores: a subtopic scoring 1 with High impact is a High/High risk."""
+    return _call(prompt)
+
+
+_DEEP_DIVE_TOPICS = (
+    ("core_systems", "the core business system or ERP in use"),
+    ("cybersecurity", "cybersecurity and access control exposure"),
+    ("data", "data quality, reporting and management visibility"),
+    ("automation", "process automation and manual dependency"),
+    ("infrastructure", "infrastructure, backup and business continuity"),
+    ("vendor", "vendor governance and IT spend control"),
+)
+
+
+def generate_deep_dives(pillars, **kw) -> dict:
+    topics = "\n".join(f'- "{key}": {desc}' for key, desc in _DEEP_DIVE_TOPICS)
+    prompt = f"""You are writing the deep-dive slides of a technology maturity assessment.
+Each one gets a slide only if the input genuinely supports it.
+
+{_brief(**kw)}
+
+Full assessment detail:
+{_assessment_detail(pillars)}
+{_GROUNDING}
+{_LENGTH}
+
+Return JSON with exactly these keys, one per topic:
+{topics}
+
+Each value is an object:
+- "applicable": true only if the input above contains specific, non-generic
+  evidence for this topic. If you would have to invent detail to fill the
+  slide, set it false. Set it false for at most 2 topics.
+- "title": a slide title naming the specific issue, under 7 words
+- "summary": 2 sentences on what was observed
+- "points": list of exactly 4 objects {{"title", "description"}} - the specific
+  observations
+- "impact": one sentence on the business consequence
+- "action": the single corrective move, under 14 words, starting with a verb"""
+    return _call(prompt)
+
+
+def generate_architecture(**kw) -> dict:
+    prompt = f"""You are writing the target-architecture section of a technology maturity
+assessment.
+
+{_brief(**kw)}
+{_GROUNDING}
+{_LENGTH}
+
+Return JSON with exactly these keys:
+- current: list of exactly 5 objects {{"title", "description"}} describing the
+  environment today across systems, data, reporting, integration and infrastructure.
+- future: list of exactly 5 objects {{"title", "description"}} describing the
+  same five areas in the target state, in the same order.
+- principles: list of exactly 4 objects {{"title", "description"}} - the design
+  principles the target state is built on.
+- governance: list of exactly 4 objects {{"title", "description"}} - the
+  governance cadence that keeps it on track (forums, reviews, ownership).
+- summary: one sentence on what the target architecture changes commercially."""
+    return _call(prompt)
+
+
+def generate_plan(priority_areas="", pillars=None, **kw) -> dict:
+    prompt = f"""You are writing the roadmap section of a technology maturity assessment.
+
+{_brief(**kw)}
+Priority areas named by leadership: {priority_areas}
+
+Lowest scoring items, worst first:
+{_ranked_rows(pillars or [], limit=12)}
+{_GROUNDING}
+{_LENGTH}
+
+Every initiative must trace to a low-scoring item above. Sequence the work so
+that stabilising and control work lands before automation and scaling.
+
+Return JSON with exactly these keys:
+- quick_wins: list of exactly 6 objects {{"title", "description"}} - things
+  deliverable inside 30 days with no capital spend.
+- phases: list of exactly 3 objects {{"label", "title", "items"}} where label is
+  "Days 1-30", "Days 31-60", "Days 61-90" in that order, title is a 2-3 word
+  theme, and items is a list of exactly 4 actions.
+- quarters: list of exactly 4 objects {{"label", "theme", "items"}} where label
+  is "Q1".."Q4", theme is a 1-2 word phase name (e.g. "Stabilise",
+  "Optimise", "Integrate", "Scale") and items is a list of exactly 4 initiatives,
+  each under 11 words.
+- priorities: list of exactly 8 objects {{"title", "description", "effort",
+  "impact"}} - the ranked initiative list. effort and impact are each "High",
+  "Medium" or "Low".
+- traceability: list of exactly 6 objects {{"gap", "initiative"}} mapping an
+  observed gap to the initiative that closes it. Each side under 9 words.
+- outcomes: list of exactly 5 objects {{"title", "description", "measure"}} -
+  the business outcomes after 12 months. "measure" is how it is evidenced,
+  under 8 words, with no invented numbers."""
+    return _call(prompt)
+
+
+def generate_granuler(granuler_location="Mumbai", locations="", **kw) -> dict:
+    prompt = f"""You are writing the closing section of a technology maturity assessment,
+where Granuler - a fractional CIO and strategic technology advisory - sets out
+why it is the right partner to execute the roadmap.
+
+{_brief(**kw)}
+Granuler operates from: {granuler_location}
+Client locations: {locations}
+{_GROUNDING}
+{_LENGTH}
+
+Write as Granuler, addressing the client's leadership. Claim no past work for
+this client and quote no fees.
+
+Return JSON with exactly these keys:
+- role: list of exactly 4 objects {{"title", "description"}} - what a fractional
+  CIO owns in this engagement.
+- model: list of exactly 4 objects {{"title", "description"}} - how the
+  engagement runs week to week.
+- why_now: list of exactly 4 objects {{"title", "description"}} - why this is
+  the right moment for this business specifically.
+- next_steps: list of exactly 4 objects {{"title", "description"}} - the
+  concrete steps after this presentation.
+- closing: 2 sentences closing the deck on the opportunity, not the problems.
+- closing_stats: list of exactly 3 objects {{"value", "label", "description"}}
+  using ONLY figures true from the input above (pillar count, roadmap length in
+  months, the maturity score, the count of high-priority risks)."""
+    return _call(prompt)
+
+
+def generate_prior_work(prior_work: str, savings_identified: str = "", **kw) -> dict:
+    """The one slide that reports work already delivered for this client.
+
+    Gated on `prior_work` being non-empty. A new client has no track record, and
+    a deck that claims one is the failure this whole repo was rebuilt to avoid.
+    """
+    prompt = f"""You are reporting the progress Granuler has already delivered for this client
+during the current engagement.
+
+{_brief(**kw)}
+Work delivered so far, in the assessor's own words: {prior_work}
+Savings or value identified: {savings_identified or "none stated"}
+{_GROUNDING}
+{_LENGTH}
+
+Report ONLY what the two lines above state. Claim no outcome, saving or timeline
+that is not written there.
+
+Return JSON with exactly these keys:
+- title: a slide title naming what has been delivered, under 7 words
+- summary: 2 sentences on the progress made since the engagement began
+- delivered: list of exactly 4 objects {{"title", "description"}} - the specific
+  things completed. If the input names fewer than four, return only those.
+- stats: list of up to 3 objects {{"value", "label", "description"}} using ONLY
+  figures stated above. Return an empty list if no figure is stated."""
+    return _call(prompt)
