@@ -648,8 +648,9 @@
     <div class="page-title" style="font-size:18px; margin-bottom:4px;">Additional Deliverables</div>
     <div class="page-subtitle">
       Fill the form above first, then generate any of these independently.
-      The <a href="/image-brief">image replacement brief</a> needs no form data — it lists the
-      stock photographs the template still carries, with a prompt and pixel size for each.
+      The image brief is produced automatically alongside the deck: it lists every numbered
+      placeholder in that deck with a prompt and a pixel size, so you can generate the
+      artwork and paste it in. The same prompt is also in each slide's speaker notes.
     </div>
   </div>
 
@@ -1243,7 +1244,30 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
     a.click();
     URL.revokeObjectURL(url);
 
-    showStatus("success", `✅ Report generated and downloaded — <strong>${company}_Granuler_Assessment.pptx</strong>`);
+    showStatus("success", `✅ Report generated and downloaded — <strong>${company}_Granuler_Assessment.pptx</strong>. Fetching the image brief...`);
+
+    // The API is stateless, so the brief is read back out of the deck's own
+    // speaker notes rather than regenerated from the form.
+    try {
+      const briefResp = await fetch(
+        `${API_BASE}/image-brief?company_name=${encodeURIComponent(payload.company_name)}`,
+        { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: blob }
+      );
+      if (briefResp.ok) {
+        const briefBlob = await briefResp.blob();
+        const briefUrl = URL.createObjectURL(briefBlob);
+        const b = document.createElement("a");
+        b.href = briefUrl;
+        b.download = `${company}_Image_Brief.pdf`;
+        b.click();
+        URL.revokeObjectURL(briefUrl);
+        showStatus("success", `✅ Downloaded <strong>${company}_Granuler_Assessment.pptx</strong> and <strong>${company}_Image_Brief.pdf</strong>`);
+      } else {
+        showStatus("success", `✅ Downloaded <strong>${company}_Granuler_Assessment.pptx</strong>. The image brief could not be generated — the prompts are still in each slide's speaker notes.`);
+      }
+    } catch (briefErr) {
+      showStatus("success", `✅ Downloaded <strong>${company}_Granuler_Assessment.pptx</strong>. The image brief could not be generated — the prompts are still in each slide's speaker notes.`);
+    }
   } catch (err) {
     showStatus("error", `❌ ${err.message}`);
   } finally {
