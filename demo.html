@@ -235,6 +235,26 @@
   #generateBtn:active { transform: translateY(0); }
   #generateBtn:disabled { background: #ccc; color: #888; cursor: not-allowed; transform: none; }
 
+  .submit-actions { display: flex; flex-direction: column; gap: 10px; min-width: 260px; }
+  .submit-actions #generateBtn { justify-content: center; }
+
+  /* One file per click. Two automatic downloads from one page is what Chrome
+     silently blocks, and the page cannot tell that it happened. */
+  .dl-btn {
+    background: #ffffff;
+    color: #14606f;
+    border: 1.5px solid #9fd4de;
+    border-radius: 8px;
+    padding: 12px 32px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .dl-btn:hover:not(:disabled) { background: #eaf6f9; border-color: #5cbcd4; }
+  .dl-btn:disabled { background: #f4f4f4; color: #aaa; border-color: #e0e0e0; cursor: not-allowed; }
+
   #statusBox {
     display: none;
     margin-top: 12px;
@@ -633,12 +653,20 @@
     <div class="submit-area" id="submitArea">
       <div class="info">
         <strong>Generate Assessment Report</strong>
-        <span>AI generates narrative content → fills 54-slide branded PPTX → downloads instantly</span>
+        <span>AI writes the narrative → the deck is drawn slide by slide → download the PPTX and its image brief below</span>
         <div id="statusBox"></div>
       </div>
-      <button type="submit" id="generateBtn">
-        ⚡ Generate Report
-      </button>
+      <div class="submit-actions">
+        <button type="submit" id="generateBtn">
+          ⚡ Generate Report
+        </button>
+        <button type="button" id="deckBtn" class="dl-btn" disabled onclick="downloadDeck()">
+          ⬇ Download PPTX
+        </button>
+        <button type="button" id="briefBtn" class="dl-btn" disabled onclick="downloadBrief()">
+          ⬇ Download Image Brief (PDF)
+        </button>
+      </div>
     </div>
 
   </form>
@@ -648,9 +676,10 @@
     <div class="page-title" style="font-size:18px; margin-bottom:4px;">Additional Deliverables</div>
     <div class="page-subtitle">
       Fill the form above first, then generate any of these independently.
-      The image brief is produced automatically alongside the deck: it lists every numbered
-      placeholder in that deck with a prompt and a pixel size, so you can generate the
-      artwork and paste it in. The same prompt is also in each slide's speaker notes.
+      The image brief is built alongside the deck and downloads from its own button next to
+      Generate. It lists every numbered placeholder in that deck with a prompt and a pixel
+      size, so you can generate the artwork and paste it in. The same prompt is also in each
+      slide's speaker notes.
     </div>
   </div>
 
@@ -1187,6 +1216,25 @@ function buildPayload(form) {
   };
 }
 
+// The last generated pair. Held so each file is one explicit click and the
+// deck never has to be regenerated (and re-billed) to get the brief.
+let lastDeck = null;    // { blob, filename }
+let lastBrief = null;
+
+function downloadDeck() { if (lastDeck) saveBlob(lastDeck.blob, lastDeck.filename); }
+function downloadBrief() { if (lastBrief) saveBlob(lastBrief.blob, lastBrief.filename); }
+
+function setDownloads(deck, brief) {
+  lastDeck = deck;
+  lastBrief = brief;
+  const deckBtn = document.getElementById("deckBtn");
+  const briefBtn = document.getElementById("briefBtn");
+  deckBtn.disabled = !deck;
+  briefBtn.disabled = !brief;
+  deckBtn.textContent = deck ? `⬇ ${deck.filename}` : "⬇ Download PPTX";
+  briefBtn.textContent = brief ? `⬇ ${brief.filename}` : "⬇ Download Image Brief (PDF)";
+}
+
 function saveBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1194,13 +1242,6 @@ function saveBlob(blob, filename) {
   a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
-
-// A blob URL the user can click. Kept alive deliberately: revoking it as soon
-// as the click fires is what leaves a dead link in the status box.
-function downloadLink(blob, filename, label) {
-  const url = URL.createObjectURL(blob);
-  return `<a href="${url}" download="${filename}" style="font-weight:600">${label}</a>`;
 }
 
 function showStatus(type, msg) {
@@ -1253,9 +1294,9 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
 
     const blob = await resp.blob();
     const company = payload.company_name.replace(/\s+/g, "_");
-    saveBlob(blob, `${company}_Granuler_Assessment.pptx`);
-
-    showStatus("success", `✅ <strong>${company}_Granuler_Assessment.pptx</strong> downloaded. Fetching the image brief...`);
+    const deckName = `${company}_Granuler_Assessment.pptx`;
+    setDownloads({ blob, filename: deckName }, null);
+    showStatus("loading", `Deck ready — ${Math.round(blob.size / 1024)} KB. Building the image brief...`);
 
     // The API is stateless, so the brief is read back out of the deck's own
     // speaker notes rather than regenerated from the form.
@@ -1267,20 +1308,15 @@ document.getElementById("assessmentForm").addEventListener("submit", async (e) =
       if (!briefResp.ok) throw new Error(`image brief returned ${briefResp.status}`);
       const briefBlob = await briefResp.blob();
       const briefName = `${company}_Image_Brief.pdf`;
-      // Chrome blocks a second automatic download from the same page unless the
-      // user has allowed it, and gives the page no way to know. So the link is
-      // always offered, and the status never claims a save it cannot see.
-      saveBlob(briefBlob, briefName);
+      setDownloads({ blob, filename: deckName }, { blob: briefBlob, filename: briefName });
       showStatus("success",
-        `✅ <strong>${company}_Granuler_Assessment.pptx</strong> downloaded.<br>` +
-        `The image brief is ready: ${downloadLink(briefBlob, briefName, "⬇ Download " + briefName)}. ` +
-        `Your browser may have saved it already — if not, use the link. ` +
-        `Every prompt is also in that slide's speaker notes.`);
+        `✅ Report ready. Use the two buttons on the right — <strong>${deckName}</strong> ` +
+        `and <strong>${briefName}</strong>. Every image prompt is also in that slide's ` +
+        `speaker notes.`);
     } catch (briefErr) {
       showStatus("success",
-        `✅ <strong>${company}_Granuler_Assessment.pptx</strong> downloaded. ` +
-        `The image brief could not be produced (${briefErr.message}) — the prompts are still ` +
-        `in each slide's speaker notes.`);
+        `✅ <strong>${deckName}</strong> is ready to download. The image brief could not be ` +
+        `produced (${briefErr.message}) — the prompts are still in each slide's speaker notes.`);
     }
   } catch (err) {
     showStatus("error", `❌ ${err.message}`);
