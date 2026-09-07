@@ -348,7 +348,7 @@ def pillar_ranking(d: Deck, c: dict):
                          "the roadmap that follows.")
     ranked = sorted(c["pillar_summaries"], key=lambda p: p["score"])
     pillar_bars(s, M, BODY_Y + 14, CW, BODY_H - 60,
-                [(p["name"], p["score"]) for p in ranked])
+                [(p["name"], p["score"]) for p in ranked], label_w=210)
     heat_legend(s, M, FOOT_Y - 36)
 
 
@@ -770,29 +770,26 @@ def pillar_detail(d: Deck, index: int, raw: dict, summary: dict, content: dict, 
     score = summary["score"]
     colour = colour_for_10(score)
     s = d.slide(raw["pillar"], kicker=f"Appendix · Pillar {index + 1} of {len(c['pillars'])}")
-    rect(s, M, BODY_Y - 6, 372, 92, fill=WASH)
-    rect(s, M, BODY_Y - 6, 372, 4, fill=colour)
-    text(s, M + 20, BODY_Y + 10, 150, 54, [(f"{score:.1f}", 38.0, True, colour, 0, DISPLAY)], fit=False)
-    text(s, M + 20, BODY_Y + 62, 200, 16, [("PILLAR SCORE / 10", 8.0, True, MUTE)], fit=False)
-    text(s, M + 196, BODY_Y + 22, 156, 40,
+    lw = 400.0
+    rect(s, M, BODY_Y - 6, lw, 88, fill=WASH)
+    rect(s, M, BODY_Y - 6, lw, 4, fill=colour)
+    text(s, M + 20, BODY_Y + 8, 160, 52, [(f"{score:.1f}", 38.0, True, colour, 0, DISPLAY)], fit=False)
+    text(s, M + 20, BODY_Y + 58, 200, 16, [("PILLAR SCORE / 10", 8.0, True, MUTE)], fit=False)
+    text(s, M + lw - 190, BODY_Y + 20, 170, 40,
          [(band_for(score * 10)[0].upper() + " BAND", 10.5, True, colour)],
          align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE, fit=False)
-    _section_label(s, M, BODY_Y + 104, 372, "Subtopic scores")
-    pillar_bars(s, M, BODY_Y + 130, 372, 150,
-                [(sub["subtopic"], sub["score"] * 2) for sub in raw["subtopics"]],
-                label_w=210, show_rank=False, show_value=False)
-    for i, sub in enumerate(raw["subtopics"]):
-        text(s, M + 334, BODY_Y + 138 + i * 37.5, 38, 22,
-             [(f"{sub['score']}/5", 10.5, True, colour_for_10(sub["score"] * 2))],
-             align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE, fit=False)
-    rx, rw = M + 404, CW - 404
+    _section_label(s, M, BODY_Y + 96, lw, "Subtopic scores")
+    pillar_bars(s, M, BODY_Y + 122, lw, 224,
+                [(sub["subtopic"], sub["score"]) for sub in raw["subtopics"]],
+                label_w=176, show_rank=False, max_value=5, value_fmt="{:.0f}/5", value_w=40)
+    rx, rw = M + lw + 36, CW - lw - 36
     _section_label(s, rx, BODY_Y - 6, rw, "Observation")
-    text(s, rx, BODY_Y + 20, rw, 76, [(_str(content, "observation"), 11.0, False, BODY)])
-    _section_label(s, rx, BODY_Y + 104, rw, "Business impact")
-    text(s, rx, BODY_Y + 130, rw, 54, [(_str(content, "business_impact"), 11.0, True, INK)])
-    _section_label(s, rx, BODY_Y + 192, rw, "Recommended actions")
+    text(s, rx, BODY_Y + 20, rw, 84, [(_str(content, "observation"), 11.5, False, BODY)])
+    _section_label(s, rx, BODY_Y + 114, rw, "Business impact")
+    text(s, rx, BODY_Y + 140, rw, 64, [(_str(content, "business_impact"), 11.5, True, INK)])
+    _section_label(s, rx, BODY_Y + 214, rw, "Recommended actions")
     recs = [_str(content, key) for key in ("rec1", "rec2", "rec3")]
-    bullets(s, rx, BODY_Y + 218, rw, 110, [r for r in recs if r], size=10.5, gap=8)
+    bullets(s, rx, BODY_Y + 240, rw, 106, [r for r in recs if r], size=11.0, gap=10)
 
 
 def methodology(d: Deck, c: dict):

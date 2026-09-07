@@ -468,27 +468,32 @@ def band_meter(slide, x, y, w, score_100: float, height=26.0):
 
 
 def pillar_bars(slide, x, y, w, h, items, label_w=196.0, show_rank=True,
-                show_value=True):
-    """Ranked horizontal bars. `items` are (name, score out of 10)."""
+                max_value=10.0, value_fmt="{:.1f}", value_w=48.0):
+    """Ranked horizontal bars. `items` are (name, score out of `max_value`).
+
+    The value label is drawn here rather than by the caller: two callers
+    overlaying their own label on top of this one is how the appendix slides
+    ended up printing both "2/5" and "4.0" beside the same bar.
+    """
     rows = len(items)
     rh = h / rows
     bar_h = min(17.0, rh - 7)
     track_x = x + label_w + 10
-    track_w = w - label_w - 58
+    track_w = w - label_w - value_w - 20
     for i, (name, score) in enumerate(items):
         by = y + i * rh + (rh - bar_h) / 2
         prefix = f"{i + 1:02d}  " if show_rank else ""
+        colour = colour_for_10(score / max_value * 10)
         text(slide, x, by - 1, label_w, bar_h + 2,
              [(f"{prefix}{name}", 10.0, False, INK)], anchor=MSO_ANCHOR.MIDDLE)
         rect(slide, track_x, by, track_w, bar_h, fill=WASH, radius=0.5,
              shape=MSO_SHAPE.ROUNDED_RECTANGLE)
-        fill_w = max(6.0, track_w * min(10.0, max(0.0, score)) / 10)
-        rect(slide, track_x, by, fill_w, bar_h, fill=colour_for_10(score), radius=0.5,
+        fill_w = max(6.0, track_w * min(max_value, max(0.0, score)) / max_value)
+        rect(slide, track_x, by, fill_w, bar_h, fill=colour, radius=0.5,
              shape=MSO_SHAPE.ROUNDED_RECTANGLE)
-        if show_value:
-            text(slide, track_x + track_w + 10, by - 1, 44, bar_h + 2,
-                 [(f"{score:.1f}", 11.0, True, colour_for_10(score))],
-                 anchor=MSO_ANCHOR.MIDDLE, fit=False)
+        text(slide, track_x + track_w + 10, by - 1, value_w, bar_h + 2,
+             [(value_fmt.format(score), 11.0, True, colour)],
+             align=PP_ALIGN.RIGHT, anchor=MSO_ANCHOR.MIDDLE, fit=False)
 
 
 def heatmap(slide, x, y, w, h, pillars, cols=4, label_w=178.0):
