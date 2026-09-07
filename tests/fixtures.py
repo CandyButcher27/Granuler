@@ -80,267 +80,361 @@ def _pairs(*items):
     return [{"title": t, "description": d} for t, d in items]
 
 
-LLM_GLOBAL = {
-    "maturity_summary": "Nihaar Equipments has built a strong product and service reputation, but runs it on Tally, Excel and WhatsApp with no system of record. Every control the business needs to scale — audit trail, inventory visibility, accountability — is currently manual.",
-    "score_interpretation": "A score in the At Risk Zone reflects an organisation whose commercial strength is not yet matched by any operational system backbone.",
-    "strongest_area": "User Adoption & Training — teams are willing to work within systems once they exist.",
-    "weakest_areas": "Process Automation, Data Quality & Reporting, and Compliance & Governance all require immediate, prioritised investment.",
-    "high_priority_risks": ["No audit trail anywhere in the business", "Zero workflow automation across the order lifecycle", "No role-based access control over business data", "No single source of truth for production orders"],
-    "high_impact_risks": ["No contract management outside Excel", "Untested backup with a stated data-loss risk"],
-    "medium_risks": ["No real-time inventory visibility at plants or distributors", "Design version management gaps", "Field staff activity is unmonitored", "No standardised KPIs across departments"],
-    "days_1_30": ["Define and publish an IT policy framework", "Establish role-based data access controls", "Baseline the order-to-delivery process end to end"],
-    "days_31_60": ["Select and scope a core business system", "Design owner and HOD dashboards", "Introduce structured contract management"],
-    "days_61_90": ["Begin core system implementation", "Stand up a tested backup and recovery routine", "Launch service ticket management"],
-    "q1_items": ["IT policy and access control baseline", "Core system selection", "Process documentation"],
-    "q2_items": ["Core system implementation", "Basic reporting live", "Contract management rollout"],
-    "q3_items": ["CRM and service ticketing", "Inventory visibility"],
-    "q4_items": ["Dashboards across all levels", "Design version control"],
-    "closing_message": "Technology can turn Nihaar Equipments' service reputation into a governed, scalable operation.",
-}
-
-LLM_PILLARS = [
-    {
-        "observation": f"{name} scored {sum(scores) / 4:.1f} out of 5 across its four subtopics, with the weakest areas concentrated in the items the assessor flagged as critical.",
-        "business_impact": "The gap limits management's ability to govern the business as it expands beyond its current scale.",
-        "rec1": "Establish a documented baseline for this pillar.",
-        "rec2": "Assign clear ownership at HOD level.",
-        "rec3": "Review progress on a defined quarterly cadence.",
-    }
-    for name, subs, scores, notes in _PILLARS
-]
-
-LLM_NARRATIVE = {
-    "business_drivers": _pairs(
-        ("Business Expansion", "Growing domestic and export volume without adding proportional administrative load."),
-        ("Audit Trail", "Traceable records across production, quality and delivery."),
-        ("Service Leadership", "Best-in-industry service capability with tracked, visible tickets."),
-        ("Global Expansion", "Compliance and documentation standards international customers audit against."),
-    ),
-    "weakest_pillar_issues": _pairs(
-        ("Manual Workflows", "The full order lifecycle runs on Tally, Excel and WhatsApp with no system workflow."),
-        ("People Dependency", "Delays trace to individuals rather than to a process."),
-        ("No ROI Tracking", "No mechanism exists to measure what automation would return."),
-    ),
-    "weakest_pillar_impacts": [
-        {"emoji_title": "⏱ Slower Delivery", "description": "Manual handoffs between departments extend lead times unpredictably."},
-        {"emoji_title": "📉 Blame Over Accountability", "description": "Without recorded steps, defects cannot be traced to a cause."},
-    ],
-    "quick_wins": _pairs(
-        ("Role-Based Data Access", "Restrict business data by role to close the current open-access exposure."),
-        ("Order Folder Standard", "One structured folder per production order for design, quality and documentation."),
-        ("Contract Register", "Move contracts out of Excel into a tracked register with renewal dates."),
-        ("Service Ticket Log", "Replace Excel service tracking with a ticketed, visible queue."),
-        ("Inventory Count Baseline", "Establish a verified opening inventory count at each location."),
-        ("Backup Restore Test", "Prove the existing backup can actually be restored."),
-    ),
-    "inaction_risks": [
-        {"emoji_title": "🔴 No Audit Trail", "description": "Export and pharmaceutical customers increasingly audit traceability that does not currently exist."},
-        {"emoji_title": "🔴 Data Loss Exposure", "description": "An untested backup against a stated data-loss risk is an unmanaged single point of failure."},
-        {"emoji_title": "🟠 Growth Ceiling", "description": "Manual coordination cannot absorb the expansion the business is planning."},
-        {"emoji_title": "🟡 Quality Escapes Persist", "description": "Undocumented part-number changes continue to reach final delivery."},
-    ],
-    "inaction_closing": "Every month without a system of record adds records that can never be reconstructed.",
-    "expected_outcomes": _pairs(
-        ("Traceable Operations", "Every production order carries a complete, auditable document set."),
-        ("Real-Time Visibility", "Owners and HODs see inventory, orders and service status without asking for a report."),
-        ("Accountability by Design", "Recorded process steps replace the blame game when defects appear."),
-        ("Scalable Service", "Ticketed service delivery that grows without adding coordination overhead."),
-    ),
-}
-
-LLM_CONTEXT = {
-    "hook_question": "Are We Scaling Reputation — or Building the Systems That Can Carry It?",
-    "growth_framing": "Nihaar Equipments has built a defensible position in cold storage and controlled-environment equipment, with a service business that carries most of its revenue. The next phase of growth depends on operational systems that do not yet exist.",
-    "growth_pillars": ["Audit Trail", "Inventory Visibility", "Service Automation", "Data Controls"],
-    "strategic_shift": "The strategic shift: Service Reputation -> Governed, Scalable Operations",
-    "company_description": "Nihaar Equipments manufactures and services controlled-environment equipment from Mumbai, with a second location at Umargaon.",
-    "expansion_note": "With domestic business at 80% and export growing, documentation and traceability standards are now a commercial requirement rather than an internal preference.",
-    "products_line": "Stability Chambers | Cold Storage Rooms | Incubators (BOD) | Ovens | Photo Stability Chambers",
-    "industries_line": "Pharmaceutical | Vaccine & API Storage | Research Laboratories | Human Testing",
-    "score_interpretation_long": "The score places Nihaar Equipments in the At Risk Zone, meaning the business currently runs without the system controls its scale requires. This is a starting position, not a verdict.",
-    "delivery_description": "Granuler delivers fractional CIO advisory from Mumbai, working alongside the Nihaar Equipments leadership team at its Mumbai base.",
-    "delivery_note": "Transformation of this kind needs strategic leadership and governance, not additional onsite IT support.",
-    "delivery_modes": _pairs(
-        ("Strategic CIO Advisory", "Roadmap ownership, governance leadership and executive reporting."),
-        ("Hybrid Engagement", "Remote-first working with periodic onsite presence at both locations."),
-        ("Vendor Coordination", "Managing system implementation partners and solution providers."),
-    ),
-    "path_forward_intro": "Nihaar Equipments already has the product, the market position and the service capability. What it lacks is the operational system layer underneath them.",
-    "path_forward_items": _pairs(
-        ("Governed Operations", "Documented, traceable processes across the full order lifecycle."),
-        ("Decision Visibility", "Live data for owners and HODs instead of assembled reports."),
-        ("Export Readiness", "Documentation and access controls international customers can audit."),
-    ),
-    "path_forward_closing": "Granuler's role is to lead this transformation so each decision serves the company's expansion rather than the immediate problem.",
-}
-
-LLM_ARCHITECTURE = {
-    "current_arch": _pairs(
-        ("Core Systems", "Tally for accounts, no system of record for operations"),
-        ("Data Storage", "Fragmented across drives, untested backup"),
-        ("Reporting", "Manual assembly, no dashboards at any level"),
-        ("Coordination", "WhatsApp for interdepartmental handoffs"),
-    ),
-    "future_arch": _pairs(
-        ("Core Systems", "Integrated business system covering order to delivery"),
-        ("Data Storage", "Centralised, role-controlled, restore-tested"),
-        ("Reporting", "Automated dashboards for owners and HODs"),
-        ("Coordination", "Recorded system workflows replacing chat handoffs"),
-    ),
-    "journey_intro": "Transformation follows a structured four-stage path from the current manual environment toward a governed, scalable operation.",
-    "journey_stages": _pairs(
-        ("Current State", "No system of record, no audit trail, manual coordination throughout."),
-        ("Controlled Environment", "IT policy, role-based access and documented processes in place."),
-        ("Systemised Operations", "Core business system live, service ticketing active, basic reports automated."),
-        ("Scalable Operation", "Dashboards at every level, full traceability, export-audit ready."),
-    ),
-    "current_layers": _pairs(
-        ("Operational Foundation", "Manual processes, no access control"),
-        ("Integration & Reporting", "No integration, reports assembled by hand"),
-        ("Core Systems", "Accounting only, no operational system of record"),
-    ),
-    "current_summary": "The current architecture supports today's transaction volume through individual effort rather than system design. Each layer depends on people remembering what the system does not record.",
-    "current_risks": _pairs(
-        ("No System of Record", "Operational history exists only in Excel files and chat threads."),
-        ("Open Data Access", "No role-based authorisation over business or design data."),
-        ("Unproven Recovery", "Backup exists but has never been restore-tested."),
-    ),
-    "future_layers": _pairs(
-        ("Governed Foundation", "Role-based access, documented IT policy"),
-        ("Integrated Operations", "Connected workflows from lead to service"),
-        ("Core Business System", "Single system of record across the lifecycle"),
-    ),
-    "future_summary": "The target architecture adds the system layer the business has never had, giving every transaction a recorded, traceable path. Controls become properties of the system rather than habits of individuals.",
-    "future_gains": _pairs(
-        ("Full Traceability", "Every order carries a complete document and approval history."),
-        ("Live Visibility", "Inventory and order status available without a manual report."),
-        ("Controlled Access", "Data reaches only the roles entitled to it."),
-    ),
-}
-
-LLM_FINDINGS = {
-    "security_intro": "The assessment found no formal security controls in place. Access to business and design data is uncontrolled, and there is no incident response plan.",
-    "security_note": "These gaps become blocking issues when pharmaceutical and export customers audit supplier data handling.",
-    "security_findings": _pairs(
-        ("No Role-Based Access", "Business and design data is reachable regardless of role or need."),
-        ("No IT Policy", "No documented baseline exists for acceptable use or data handling."),
-        ("No Incident Response", "There is no defined procedure for a breach or data loss event."),
-        ("Untested Backup", "A stated data-loss risk sits behind a backup that has never been restored."),
-    ),
-    "reporting_flow": _pairs(
-        ("Manual Assembly", "Reports built by hand, inconsistently"),
-        ("Automated Reports", "Scheduled outputs from a system of record"),
-        ("Standardised KPIs", "One metric set across all departments"),
-    ),
-    "reporting_current": _pairs(
-        ("No Single Source of Truth", "Each department maintains its own version of operational data."),
-        ("No Dashboards", "Neither owners nor HODs have any live operational view."),
-        ("Unstandardised KPIs", "Metrics differ by department, preventing comparison."),
-    ),
-    "reporting_recommendation": "Recommendation: establish a single system of record first, then automate a standardised dashboard set for owners and HODs.",
-    "infra_intro": "Infrastructure is functional for current volume but carries an unmanaged data-loss risk and no monitoring.",
-    "infra_findings": _pairs(
-        ("Untested Recovery", "Backups are taken but restoration has never been verified."),
-        ("Fragmented Storage", "Operational and design files are spread across local drives."),
-        ("No Monitoring", "Issues are discovered by users rather than by monitoring."),
-        ("Two-Site Gaps", "The Umargaon location has no defined infrastructure standard."),
-    ),
-    "infra_closing": "Infrastructure work here is about provable recoverability before capacity.",
-}
-
-LLM_CONDITIONAL = {
-    "core_system_risk": {"applicable": False, "title": "", "warning": "", "impacts": [], "closing": ""},
-    "hr_opportunity": {"applicable": False, "intro": "", "items": []},
-    "vendor_governance": {
-        "applicable": True,
-        "title": "Vendor & Contract Governance",
-        "observations": _pairs(
-            ("No Contract Register", "All contracts are held in Excel with no renewal or obligation tracking."),
-            ("No Spend Visibility", "Technology and service spend is not consolidated for review."),
-            ("Informal Selection", "Vendors are chosen without a structured evaluation framework."),
+# Narrative blocks in the shape api/slides.py reads. Written from the same
+# discovery notes as the scores above, so a deck built from this fixture is a
+# valid stand-in for a real one - and still mentions no ERP, no SAP, no Pune.
+CONTENT = {
+    "executive": {
+        "headline": "Can Nihaar Equipments expand globally on manual controls?",
+        "situation": "The business runs on Tally, Excel and WhatsApp with no single "
+                     "source of truth. Growth plans assume a control environment that "
+                     "does not exist yet.",
+        "verdict": "At 35.5 out of 100 the estate sits in the At Risk band — controls "
+                   "and visibility the business is already relying on do not exist.",
+        "findings": _pairs(
+            ("No audit trail", "Nothing records who changed what, anywhere in the business."),
+            ("Zero automation", "Every workflow depends on a person remembering to act."),
+            ("No inventory visibility", "Stock counts are unknown until someone walks the floor."),
         ),
-        "action_taken": "Action: Granuler will introduce a contract register and a repeatable vendor evaluation framework.",
+        "moves": _pairs(
+            ("Establish controls", "Put role-based authorisation and an audit trail in place."),
+            ("Create one source of truth", "Consolidate inventory and order data into one system."),
+            ("Automate the core flow", "Move lead-to-delivery off spreadsheets and WhatsApp."),
+        ),
+        "stakes": "Every quarter without controls adds reconciliation work that scales "
+                  "with revenue rather than with headcount.",
+        "shift": "Reactive firefighting to planned, measured operations",
     },
-    "quality_process": {
-        "applicable": True,
-        "intro": "Quality control exists as a role but not as a recorded process. Defects reaching final delivery trace to undocumented part-number changes and requirements captured only in conversation.",
-        "within_systems": _pairs(
-            ("Recorded Quality Gates", "Quality checks captured against the production order rather than on paper."),
-            ("Change Control", "Part-number and specification changes recorded and approved."),
-            ("Order Traceability", "One document set per production order covering design, quality and despatch."),
+    "context": {
+        "summary": "Nihaar Equipments manufactures and services cold storage equipment "
+                   "from Mumbai and Umargaon, serving pharmaceutical and research clients.",
+        "why_now": "Global expansion raises the evidence bar on quality and traceability. "
+                   "The current estate cannot produce that evidence.",
+        "products": ["Stability chambers", "Cold storage rooms", "Incubators (BOD)",
+                     "Ovens", "Photo stability chambers"],
+        "industries": ["Pharmaceutical", "Vaccine & API storage", "Research laboratories",
+                       "Human testing"],
+        "drivers": _pairs(
+            ("Global expansion", "Serve export markets to the standards they audit against."),
+            ("Quality assurance", "Prove deliverable quality with records, not recollection."),
+            ("Accountability", "Make ownership visible at every level of the business."),
+            ("Service capability", "Match the best service response in the industry."),
         ),
-        "outside_systems": _pairs(
-            ("Standardised Inspection", "Consistent inspection protocols across both locations."),
-            ("Digital Inspection Records", "Structured digital forms replacing paper checks."),
-            ("Defect Reporting", "Visibility of defect rates and corrective action status."),
+        "voices": _pairs(
+            ("Owner", "No visibility into what is happening between departments."),
+            ("Production Manager", "Defects surface late and nobody owns the cause."),
+            ("Finance & Procurement", "Contracts live in Excel with no renewal alerts."),
+            ("Services", "Field staff activity is invisible until a customer complains."),
         ),
+        "question": "Are we scaling revenue, or building an operation that can carry it?",
     },
-    "core_process_observations": {"applicable": False, "title": "", "intro": "", "findings": []},
-}
-
-LLM_ROADMAP = {
-    "risk_mapping_intro": "Each risk identified in the assessment maps to a specific roadmap initiative, so execution stays accountable to the findings.",
-    "risk_mapping": [
-        {"risk": "No Audit Trail", "initiative": "Core business system with recorded workflow steps"},
-        {"risk": "Open Data Access", "initiative": "Role-based authorisation and IT policy rollout"},
-        {"risk": "Zero Automation", "initiative": "Order-to-delivery workflow automation"},
-        {"risk": "No Inventory Visibility", "initiative": "Inventory baseline and live stock reporting"},
-        {"risk": "Contract Management", "initiative": "Contract register with renewal tracking"},
+    "findings": {
+        "strengths": _pairs(
+            ("Capable people", "Inter-departmental teams rate each other well on cooperation."),
+            ("Stable network", "Site connectivity is reliable across both locations."),
+            ("Willing leadership", "Management is engaged and open to structured change."),
+            ("Established product", "The equipment line has a clear position in its market."),
+        ),
+        "gaps": [
+            {"title": "No audit trail", "pillar": "Compliance & Governance",
+             "description": "No system records who changed what, so quality issues cannot be traced.",
+             "evidence": "No audit trail anywhere in the business"},
+            {"title": "Zero automation", "pillar": "Process Automation",
+             "description": "Every process step is manual and dependent on individuals remembering.",
+             "evidence": "100% manual, Tally and Excel only"},
+            {"title": "No dashboards", "pillar": "Data Quality & Reporting",
+             "description": "Leadership has no live view of the business at any level.",
+             "evidence": "No dashboard exists at any level"},
+            {"title": "Uncontrolled access", "pillar": "Cybersecurity & Risk",
+             "description": "Data access is not restricted by role, so exposure is total.",
+             "evidence": "No role-based authorisation"},
+            {"title": "Untested backups", "pillar": "Infrastructure & Reliability",
+             "description": "Backups are manual and have never been restored under test.",
+             "evidence": "Data loss risk, no tested backup"},
+        ],
+        "causes": _pairs(
+            ("No system of record", "Data lives wherever it was first typed."),
+            ("Ownership is implicit", "Responsibility is assumed rather than assigned."),
+            ("Tools chosen ad hoc", "Each department solved its own problem separately."),
+            ("No measurement", "Nothing is counted, so nothing improves deliberately."),
+        ),
+        "inaction": _pairs(
+            ("Reconciliation grows", "Manual effort rises in step with order volume."),
+            ("Quality claims weaken", "Export customers will ask for records that do not exist."),
+            ("Data loss stays likely", "An untested backup is a backup that has not worked yet."),
+            ("Talent absorbs the gap", "Good people spend their time on clerical recovery."),
+        ),
+        "inaction_summary": "On the current trajectory the cost of control rises faster "
+                            "than revenue for the next twelve months.",
+    },
+    "risks": {
+        "risks": [
+            {"title": "No audit trail", "description": "Quality and compliance issues cannot be traced to a cause.",
+             "impact": "High", "likelihood": "High", "mitigation": "Enable transaction logging in the core system",
+             "owner": "Quality Head", "horizon": "0-30 days"},
+            {"title": "Uncontrolled data access", "description": "Every user can reach every record with no restriction.",
+             "impact": "High", "likelihood": "High", "mitigation": "Define roles and apply least-privilege access",
+             "owner": "Operations Head", "horizon": "0-30 days"},
+            {"title": "Untested backups", "description": "Backups are manual and have never been restored.",
+             "impact": "High", "likelihood": "Medium", "mitigation": "Schedule automated backups and test a restore",
+             "owner": "IT Lead", "horizon": "0-30 days"},
+            {"title": "No inventory visibility", "description": "Stock levels are unknown until physically counted.",
+             "impact": "Medium", "likelihood": "High", "mitigation": "Introduce a single stock ledger with daily close",
+             "owner": "Production Manager", "horizon": "1-3 months"},
+            {"title": "Contracts in spreadsheets", "description": "Renewals and obligations depend on someone remembering.",
+             "impact": "Medium", "likelihood": "Medium", "mitigation": "Move contracts to a register with renewal alerts",
+             "owner": "Finance Head", "horizon": "1-3 months"},
+            {"title": "Manual process dependency", "description": "Absences stall workflows with no documented fallback.",
+             "impact": "Medium", "likelihood": "High", "mitigation": "Document and automate the top five workflows",
+             "owner": "Operations Head", "horizon": "3-6 months"},
+            {"title": "No incident response plan", "description": "A security event would be handled improvised.",
+             "impact": "Medium", "likelihood": "Low", "mitigation": "Write and rehearse a basic response plan",
+             "owner": "IT Lead", "horizon": "3-6 months"},
+            {"title": "Design version drift", "description": "Drawing versions are not controlled across teams.",
+             "impact": "Low", "likelihood": "Medium", "mitigation": "Adopt a controlled drawing repository",
+             "owner": "Design Lead", "horizon": "6-12 months"},
+        ],
+    },
+    "deep_dives": {
+        "core_systems": {
+            "applicable": True, "title": "Core systems cannot carry growth",
+            "summary": "Tally and spreadsheets hold the operating data. Neither was built "
+                       "to enforce process or record who acted.",
+            "points": _pairs(
+                ("No integration", "Systems do not exchange data; people retype it."),
+                ("No workflow", "Nothing enforces the order in which work happens."),
+                ("No audit record", "Changes leave no trace to review later."),
+                ("Reporting is manual", "Every report is rebuilt by hand each time."),
+            ),
+            "impact": "Decisions are made on numbers that are days old and unverifiable.",
+            "action": "Select a core system that enforces workflow and records every change",
+        },
+        "cybersecurity": {
+            "applicable": True, "title": "Access control is effectively absent",
+            "summary": "There is no role-based authorisation and no incident plan. "
+                       "Exposure is limited only by trust.",
+            "points": _pairs(
+                ("No role model", "Every user can reach every record."),
+                ("No response plan", "A breach would be handled improvised."),
+                ("No awareness training", "Staff have had no security briefing."),
+                ("Backups unverified", "Recovery has never been tested."),
+            ),
+            "impact": "A single credential loss would expose the whole data estate.",
+            "action": "Define roles, apply least privilege, and test one restore",
+        },
+        "data": {
+            "applicable": True, "title": "No single source of truth",
+            "summary": "Inventory, orders and service data live in separate places. "
+                       "No dashboard exists at any level.",
+            "points": _pairs(
+                ("Zero inventory visibility", "Stock is unknown between physical counts."),
+                ("No dashboards", "Leadership reviews the business retrospectively."),
+                ("No standard KPIs", "Departments measure different things."),
+                ("Manual consolidation", "Reporting depends on one person's spreadsheet."),
+            ),
+            "impact": "Leadership cannot see a problem until it has already cost money.",
+            "action": "Consolidate operating data and publish one daily dashboard",
+        },
+        "automation": {
+            "applicable": True, "title": "Zero automation across the flow",
+            "summary": "Lead to conversion to production to delivery is entirely manual, "
+                       "coordinated over WhatsApp.",
+            "points": _pairs(
+                ("Manual handoffs", "Each stage waits for someone to notice it."),
+                ("No status visibility", "Order progress is a phone call away."),
+                ("Rework is invisible", "Repeated work is never counted."),
+                ("No ROI tracking", "Automation cannot be justified without a baseline."),
+            ),
+            "impact": "Throughput is capped by coordination effort rather than capacity.",
+            "action": "Automate the lead-to-delivery flow one stage at a time",
+        },
+        "infrastructure": {"applicable": False},
+        "vendor": {
+            "applicable": True, "title": "Vendor spend is unmanaged",
+            "summary": "Contracts sit in spreadsheets with no renewal visibility and no "
+                       "consolidated view of IT spend.",
+            "points": _pairs(
+                ("Contracts in Excel", "Obligations depend on individual memory."),
+                ("No renewal alerts", "Auto-renewals pass unnoticed."),
+                ("No spend visibility", "Total IT cost is not known."),
+                ("No vendor review", "Performance is never formally assessed."),
+            ),
+            "impact": "The business pays for capacity it cannot see and cannot renegotiate.",
+            "action": "Build a contract register with owners and renewal dates",
+        },
+    },
+    "architecture": {
+        "current": _pairs(
+            ("Core systems", "Tally and spreadsheets, with no workflow enforcement."),
+            ("Data", "Held per department, with no single source of truth."),
+            ("Reporting", "Rebuilt manually, retrospective, unverifiable."),
+            ("Integration", "None; data is retyped between systems."),
+            ("Infrastructure", "Manual backups, untested recovery."),
+        ),
+        "future": _pairs(
+            ("Core systems", "One system of record that enforces process and logs change."),
+            ("Data", "A single operating dataset all departments read from."),
+            ("Reporting", "Daily dashboards produced without human effort."),
+            ("Integration", "Systems exchange data automatically, entered once."),
+            ("Infrastructure", "Automated backup with a tested restore schedule."),
+        ),
+        "principles": _pairs(
+            ("Enter data once", "Every fact has one home and one owner."),
+            ("Enforce, do not remind", "The system carries the process, not the person."),
+            ("Measure what changes", "Nothing ships without a way to see whether it worked."),
+            ("Least privilege", "Access is granted by role, reviewed on a cadence."),
+        ),
+        "governance": _pairs(
+            ("Weekly delivery review", "Thirty minutes on progress, blockers and decisions."),
+            ("Monthly steering", "Leadership reviews the roadmap against outcomes."),
+            ("Quarterly re-score", "The maturity assessment is rerun and compared."),
+            ("Named owners", "Every initiative carries one accountable role."),
+        ),
+        "summary": "The target state replaces coordination effort with a system that "
+                   "carries the process itself.",
+    },
+    "plan": {
+        "quick_wins": _pairs(
+            ("Enable transaction logging", "Turn on the audit trail the current tools already have."),
+            ("Define user roles", "Write down who should see what, then apply it."),
+            ("Automate one backup", "Schedule it and test a single restore."),
+            ("Publish a stock count", "One weekly count, circulated to all HODs."),
+            ("Build a contract register", "One sheet, owner and renewal date per contract."),
+            ("Name process owners", "One accountable role per core workflow."),
+        ),
+        "phases": [
+            {"label": "Days 1-30", "title": "Establish control", "items": [
+                "Turn on audit logging in the core systems",
+                "Define and apply role-based access",
+                "Schedule and test automated backups",
+                "Name an owner for each core workflow"]},
+            {"label": "Days 31-60", "title": "Create visibility", "items": [
+                "Consolidate inventory into one ledger",
+                "Publish a first daily operations dashboard",
+                "Agree standard KPIs across departments",
+                "Build the contract and renewal register"]},
+            {"label": "Days 61-90", "title": "Prove the model", "items": [
+                "Automate the first lead-to-order handoff",
+                "Run a restore test and record the result",
+                "Review access rights against the role model",
+                "Re-score the two weakest pillars"]},
+        ],
+        "quarters": [
+            {"label": "Q1", "theme": "Stabilise", "items": [
+                "Audit trail live across core systems",
+                "Role-based access applied and reviewed",
+                "Automated backup with tested restore",
+                "Named owners for every core workflow"]},
+            {"label": "Q2", "theme": "Visibility", "items": [
+                "Single inventory ledger in daily use",
+                "Operations dashboard published daily",
+                "Standard KPIs agreed across departments",
+                "Contract register with renewal alerts"]},
+            {"label": "Q3", "theme": "Automate", "items": [
+                "Lead-to-order flow automated end to end",
+                "Service ticket management in production",
+                "Manual reporting effort halved",
+                "Design version control adopted"]},
+            {"label": "Q4", "theme": "Scale", "items": [
+                "Export-grade traceability evidence in place",
+                "Security awareness training completed",
+                "IT spend consolidated and renegotiated",
+                "Full re-assessment against this baseline"]},
+        ],
+        "priorities": [
+            {"title": "Audit trail", "description": "Enable logging in the core systems.",
+             "effort": "Low", "impact": "High"},
+            {"title": "Role-based access", "description": "Apply least privilege by role.",
+             "effort": "Low", "impact": "High"},
+            {"title": "Tested backups", "description": "Automate and verify recovery.",
+             "effort": "Low", "impact": "High"},
+            {"title": "Inventory ledger", "description": "One stock number the business trusts.",
+             "effort": "Medium", "impact": "High"},
+            {"title": "Operations dashboard", "description": "Daily view for owners and HODs.",
+             "effort": "Medium", "impact": "High"},
+            {"title": "Workflow automation", "description": "Automate lead to delivery.",
+             "effort": "High", "impact": "High"},
+            {"title": "Contract register", "description": "Owners and renewal dates in one place.",
+             "effort": "Low", "impact": "Medium"},
+            {"title": "Security training", "description": "Brief all staff on basic hygiene.",
+             "effort": "Low", "impact": "Medium"},
+        ],
+        "traceability": [
+            {"gap": "No audit trail", "initiative": "Enable transaction logging"},
+            {"gap": "Uncontrolled data access", "initiative": "Role-based access model"},
+            {"gap": "Untested backups", "initiative": "Automated backup and restore test"},
+            {"gap": "No inventory visibility", "initiative": "Single stock ledger"},
+            {"gap": "No dashboards", "initiative": "Daily operations dashboard"},
+            {"gap": "Zero automation", "initiative": "Lead-to-delivery automation"},
+        ],
+        "outcomes": [
+            {"title": "Traceable quality", "description": "Every change is attributable to a person and a time.",
+             "measure": "Audit log coverage"},
+            {"title": "Live inventory", "description": "Stock position is known without a physical count.",
+             "measure": "Daily ledger close"},
+            {"title": "Faster decisions", "description": "Leadership acts on the same day, not the same month.",
+             "measure": "Dashboard in daily use"},
+            {"title": "Lower manual effort", "description": "Coordination stops scaling with order volume.",
+             "measure": "Manual report hours"},
+            {"title": "Recoverable estate", "description": "A failure is an inconvenience rather than a loss.",
+             "measure": "Restore test result"},
+        ],
+    },
+    "granuler": {
+        "role": _pairs(
+            ("Roadmap ownership", "Holds the twelve-month plan and its sequencing."),
+            ("Vendor governance", "Runs selection, contracts and performance reviews."),
+            ("Security oversight", "Owns the access model and the incident plan."),
+            ("Execution accountability", "Answers for delivery, not just advice."),
+        ),
+        "model": _pairs(
+            ("Weekly working session", "Two hours on site or remote with the delivery team."),
+            ("Monthly steering", "Leadership review of progress against outcomes."),
+            ("Quarterly re-score", "The same assessment, rerun and compared."),
+            ("Always-on escalation", "A named contact for decisions that cannot wait."),
+        ),
+        "why_now": _pairs(
+            ("Expansion raises the bar", "Export customers audit what today cannot be shown."),
+            ("Cost rises with scale", "Retrofitting controls later costs more than building them now."),
+            ("The team is willing", "Change readiness is the scarce input, and it is present."),
+            ("The gaps are known", "This assessment has already done the diagnostic work."),
+        ),
+        "next_steps": _pairs(
+            ("Agree the priorities", "Confirm the first ninety days with leadership."),
+            ("Name the owners", "Assign an accountable role to each initiative."),
+            ("Start the quick wins", "Begin the six no-cost actions this week."),
+            ("Book the cadence", "Put the weekly and monthly reviews in the calendar."),
+        ),
+        "closing": "The foundations here are sound: capable people, a real product and "
+                   "leadership willing to change. What is missing is the system that "
+                   "carries the process.",
+        "closing_stats": [
+            {"value": "10", "label": "Pillars assessed", "description": "Across forty scored observations."},
+            {"value": "12", "label": "Month roadmap", "description": "Sequenced from control to scale."},
+            {"value": "35.5", "label": "Maturity score", "description": "At Risk band, out of 100."},
+        ],
+    },
+    "prior_work": {
+        "title": "Progress since discovery began",
+        "summary": "Two control gaps were closed during the discovery engagement itself. "
+                   "Both were no-cost changes to systems already in place.",
+        "delivered": _pairs(
+            ("Audit logging enabled", "Transaction logging switched on in the core systems."),
+            ("Backup schedule automated", "Manual HDD backups replaced with a scheduled job."),
+            ("Access review started", "A first pass over who can reach which records."),
+            ("Contract register drafted", "Every contract listed with an owner and a date."),
+        ),
+        "stats": [],
+    },
+    "pillars": [
+        {
+            "observation": f"{name} shows gaps across its four subtopics, with manual "
+                           "effort standing in for system control.",
+            "business_impact": "Effort scales with volume rather than with capability.",
+            "rec1": "Define the target state for this pillar",
+            "rec2": "Assign an accountable owner",
+            "rec3": "Re-score after the first ninety days",
+        }
+        for name, _subs, _scores, _notes in _PILLARS
     ],
-    "top_priorities": _pairs(
-        ("IT Policy Framework", "Establish the documented baseline the business currently lacks"),
-        ("Role-Based Access Control", "Restrict business and design data by role"),
-        ("Core Business System", "Select and implement a single system of record"),
-        ("Basic Operational Reports", "Deliver the first automated reports for leadership"),
-        ("Order Document Standard", "One structured document set per production order"),
-        ("Service Ticket Management", "Replace Excel service tracking with a ticketed queue"),
-        ("Inventory Visibility", "Establish verified counts and live stock reporting"),
-        ("Contract Register", "Move contract management out of Excel"),
-        ("Backup & Recovery Testing", "Prove recoverability against the stated data-loss risk"),
-        ("Owner & HOD Dashboards", "Live operational visibility at every level"),
-    ),
-    "roadmap_phases": _pairs(
-        ("Stabilise", "0-3 months: policy, access control, process documentation"),
-        ("Optimise", "3-6 months: core system, basic reports, contract register"),
-        ("Scale", "6-12 months: dashboards, service ticketing, inventory visibility"),
-    ),
-    "roadmap_closing": "The roadmap establishes controls before systems and systems before dashboards, so each phase creates the foundation the next one needs. Nothing is automated before the process it automates is documented.",
-    "timeline_quarters": _pairs(
-        ("Q1 - Establish Control", "IT policy · Role-based access · Process documentation · System selection"),
-        ("Q2 - Systemise", "Core system implementation · Basic reports · Contract register"),
-        ("Q3 - Extend", "Service ticketing · Inventory visibility · Quality record capture"),
-        ("Q4 - Enable Scale", "Owner and HOD dashboards · Design version control · Export audit readiness"),
-    ),
-}
-
-LLM_CLOSING = {
-    "why_granuler_intro": "Granuler brings enterprise-grade technology leadership at fractional cost, giving Nihaar Equipments the capability to govern and sequence this transformation.",
-    "why_granuler_items": _pairs(
-        ("Roadmap Ownership", "End-to-end accountability for the 12-month transformation plan."),
-        ("System Selection Governance", "Independent evaluation of core system options against business need."),
-        ("Data Control Leadership", "Policy, access control and recovery standards designed from the ground up."),
-        ("Vendor Management", "Structured evaluation and performance governance of implementation partners."),
-        ("Executive Reporting", "Leadership visibility into transformation progress against the roadmap."),
-    ),
-    "inaction_intro": "Technology risk here compounds quietly. The absence of a system of record is not visible day to day, and becomes visible only when a record is needed and does not exist.",
-    "inaction_items": _pairs(
-        ("Audit Trail Gap Widens", "Every month of operation adds history that cannot be reconstructed later."),
-        ("Data Loss Stays Unmanaged", "An untested backup against a known risk remains a single point of failure."),
-        ("Expansion Hits a Ceiling", "Manual coordination cannot absorb the planned growth in volume or geography."),
-        ("Quality Escapes Continue", "Undocumented specification changes keep reaching final delivery."),
-    ),
-    "inaction_principle": "Key principle: a business that is not recorded cannot be governed, and what cannot be governed cannot be scaled.",
-    "act_now_intro": "The discovery phase has mapped, scored and prioritised every gap. No further assessment is required before execution can begin.",
-    "act_now_items": _pairs(
-        ("Complete Visibility", "All ten pillars assessed with evidence and priority against each gap."),
-        ("Sequenced Roadmap", "A 12-month plan ordered so each phase enables the next."),
-        ("Leadership Alignment", "Stakeholders across all departments engaged during discovery."),
-        ("Low-Cost Starting Moves", "The first phase is policy and process work, not capital expenditure."),
-    ),
-    "closing_stats": [
-        {"value": "10", "label": "Pillars Assessed", "description": "Full technology maturity baseline established"},
-        {"value": "12", "label": "Month Roadmap", "description": "Structured, phased and ready for execution"},
-        {"value": "40", "label": "Subtopics Scored", "description": "Evidence captured against every assessed area"},
-    ],
-    "closing_statement": "Technology can become the backbone that lets Nihaar Equipments' service reputation scale beyond what manual coordination allows.",
 }

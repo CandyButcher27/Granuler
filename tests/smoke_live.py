@@ -36,9 +36,11 @@ from fastapi.testclient import TestClient  # noqa: E402
 from pptx import Presentation  # noqa: E402
 
 from api.main import app  # noqa: E402
-from api.pptx_generator import _TEMPLATE_FINGERPRINTS  # noqa: E402
 
-FORBIDDEN = _TEMPLATE_FINGERPRINTS + ("the client company",)
+# Facts belonging to other clients, plus the placeholder the LLM is given in
+# place of this client's name. None may appear in a generated deck.
+FORBIDDEN = ("Uni-tech", "Unitech", "Dhruv", "SAP", "S/4HANA", "Sydler",
+             "XYZ", "the client company")
 
 
 def main(notes_path: str, company: str) -> int:

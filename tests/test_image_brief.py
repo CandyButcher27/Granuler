@@ -1,119 +1,49 @@
-"""The stock-photo replacement brief."""
+"""The image brief must describe the deck the assessor is actually holding."""
+import io
 import sys
 from pathlib import Path
 
+from pptx import Presentation
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from api.image_brief import build_prompt, collect_photos, image_brief_pdf  # noqa: E402
+from api.image_brief import image_brief_pdf, slots_from_deck  # noqa: E402
+from api.slides import build_deck  # noqa: E402
+from tests import fixtures as fx  # noqa: E402
 
 
-def test_finds_the_stock_photographs_and_ignores_the_icons():
-    """The template carries ~117 pictures; only the photographs need replacing.
-
-    The rest are icons, rules and SVG glyphs that carry no client identity.
-    """
-    photos = collect_photos()
-    assert 10 <= len(photos) <= 30, f"{len(photos)} photos - the filter has drifted"
-    assert [p["number"] for p in photos] == list(range(1, len(photos) + 1))
-    for photo in photos:
-        assert photo["slide"] >= 1
-        assert photo["width_px"] > 0 and photo["height_px"] > 0
+def _slots():
+    data, slots = build_deck(fx.INTAKE, fx.PILLARS_RAW, fx.CONTENT)
+    return data, slots
 
 
-def test_every_photo_gets_a_usable_prompt():
-    from api.image_brief import SPECIAL_PROMPTS
-
-    for photo in collect_photos():
-        prompt = build_prompt(photo)
-        if photo["slide"] in SPECIAL_PROMPTS:
-            continue  # a diagram, briefed separately below
-        assert "No text, no logos" in prompt
-        assert prompt.rstrip().endswith("crop.")
+def test_slots_are_numbered_from_one_without_gaps():
+    _data, slots = _slots()
+    assert [s["n"] for s in slots] == list(range(1, len(slots) + 1))
 
 
-def test_orientation_follows_the_shape():
-    wide = build_prompt({"title": "x", "width_in": 10.0, "height_in": 5.0})
-    tall = build_prompt({"title": "x", "width_in": 5.0, "height_in": 10.0})
-    square = build_prompt({"title": "x", "width_in": 6.0, "height_in": 6.0})
-    assert "wide landscape" in wide
-    assert "tall portrait" in tall
-    assert "square" in square
+def test_every_slot_has_a_prompt_and_a_pixel_size():
+    _data, slots = _slots()
+    for slot in slots:
+        assert len(slot["prompt"]) > 40
+        assert all(px > 100 for px in slot["px"])
 
 
-def test_renders_a_pdf():
-    assert image_brief_pdf().startswith(b"%PDF-")
+def test_the_brief_is_recovered_from_the_deck_alone():
+    """The API keeps no state, so the notes have to be enough on their own."""
+    data, slots = _slots()
+    recovered = slots_from_deck(Presentation(io.BytesIO(data)))
+    assert len(recovered) == len(slots)
+    assert recovered[0]["slide"] == 1
 
 
-def test_renders_when_the_template_has_no_photographs():
-    assert image_brief_pdf([]).startswith(b"%PDF-")
+def test_the_brief_renders_a_pdf_naming_every_image():
+    _data, slots = _slots()
+    pdf = image_brief_pdf(slots, company=fx.INTAKE["company_name"])
+    assert pdf.startswith(b"%PDF")
+    assert len(pdf) > 3000
 
 
-def test_the_maturity_diagram_names_this_client_not_the_template_s():
-    """Slide 6's picture is a staircase captioned "(Uni-Tech)" in its pixels.
-
-    A photo prompt is wrong for it twice over: it is a diagram, and its
-    replacement has to carry the current client's name and band.
-    """
-    photo = next(p for p in collect_photos() if p["slide"] == 6)
-    prompt = build_prompt(photo, "Nihaar Equipments", 41.5)
-    assert "Nihaar Equipments" in prompt
-    assert "41-60" in prompt
-    assert "Uni-Tech" not in prompt
-    assert "photograph" not in prompt.lower()
-
-
-def test_the_band_highlighted_follows_the_score():
-    from api.image_brief import band_range_for
-
-    assert band_range_for(12.0) == "0-25"
-    assert band_range_for(35.5) == "26-40"
-    assert band_range_for(41.5) == "41-60"
-    assert band_range_for(61.5) == "61-75"
-    assert band_range_for(80.0) == "76-90"
-    assert band_range_for(95.0) == "91-100"
-
-
-def test_the_leaking_picture_never_reaches_a_generated_deck():
-    from api.pptx_generator import _FOREIGN_IMAGE_SHA1, _remove_foreign_images
-    from pptx import Presentation
-
-    from api.image_brief import TEMPLATE_PATH
-
-    prs = Presentation(str(TEMPLATE_PATH))
-    assert _remove_foreign_images(prs), "the known foreign picture was not found to remove"
-    surviving = set()
-    for slide in prs.slides:
-        for shape in slide.shapes:
-            if shape.__class__.__name__ != "Picture":
-                continue
-            try:
-                surviving.add(shape.image.sha1)
-            except ValueError:
-                pass
-    assert not (surviving & set(_FOREIGN_IMAGE_SHA1))
-
-
-def test_every_replaceable_picture_carries_its_prompt_in_the_slide_notes():
-    """Nothing outside the file can point at these slides reliably.
-
-    The deck drops gated slides, so its numbering is not the template's, and
-    five of the eighteen titles are rewritten per client. Notes travel inside
-    the file and a viewer never sees them.
-    """
-    from pptx import Presentation
-
-    from api.image_brief import photos_in
-    from api.pptx_generator import _note_image_prompts, TEMPLATE_PATH
-
-    prs = Presentation(str(TEMPLATE_PATH))
-    counted = _note_image_prompts(prs, "Nihaar Equipments", 41.5)
-    assert counted == len(photos_in(prs))
-
-    noted = [
-        s for s in prs.slides
-        if s.has_notes_slide and "REPLACE THIS PICTURE" in s.notes_slide.notes_text_frame.text
-    ]
-    assert len(noted) == counted
-    first = noted[0].notes_slide.notes_text_frame.text
-    assert "Render at" in first and "px" in first
-    assert "Prompt:" in first
+def test_a_deck_with_no_placeholders_still_renders():
+    pdf = image_brief_pdf([], company="Some Company")
+    assert pdf.startswith(b"%PDF")

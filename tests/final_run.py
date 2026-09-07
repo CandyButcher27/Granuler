@@ -36,7 +36,8 @@ def auth() -> str:
     return f"{user}:{password}"
 
 
-def call(method: str, path: str, body: dict | None = None, timeout: int = 600) -> bytes:
+def call(method: str, path: str, body: dict | bytes | None = None,
+         timeout: int = 600) -> bytes:
     """One request, via curl.
 
     Python's TLS stack resets against this host on the machine this is run
@@ -47,9 +48,15 @@ def call(method: str, path: str, body: dict | None = None, timeout: int = 600) -
         cmd = ["curl", "-sS", "--max-time", str(timeout), "-u", auth(),
                "-o", str(out), "-w", "%{http_code}", f"{BASE}{path}"]
         if body is not None:
-            payload = Path(tmp) / "payload.json"
-            payload.write_text(json.dumps(body), encoding="utf-8")
-            cmd += ["-X", method, "-H", "Content-Type: application/json",
+            if isinstance(body, bytes):
+                payload = Path(tmp) / "payload.bin"
+                payload.write_bytes(body)
+                content_type = "application/octet-stream"
+            else:
+                payload = Path(tmp) / "payload.json"
+                payload.write_text(json.dumps(body), encoding="utf-8")
+                content_type = "application/json"
+            cmd += ["-X", method, "-H", f"Content-Type: {content_type}",
                     "--data-binary", f"@{payload}"]
         # The host drops a connection now and then, which curl reports as 000.
         # A dropped connection is not a failed assessment, so retry it.

@@ -1,3 +1,4 @@
+import io
 import os
 import re
 import secrets
@@ -12,30 +13,30 @@ from pydantic import BaseModel, Field
 
 from .llm import (
     generate_pillar_content,
-    generate_global_content,
-    generate_narrative_content,
+    generate_executive,
+    generate_context,
+    generate_findings,
+    generate_risks,
+    generate_deep_dives,
+    generate_architecture,
+    generate_plan,
+    generate_granuler,
+    generate_prior_work,
     generate_quick_wins,
     generate_risk_register,
     generate_proposal,
-    generate_company_context,
-    generate_architecture_content,
-    generate_findings_content,
-    generate_conditional_content,
-    generate_roadmap_content,
-    generate_closing_content,
-    generate_prior_work_content,
     extract_from_notes,
 )
-from .image_brief import image_brief_pdf
+from .image_brief import image_brief_pdf, slots_from_deck
 from .pdf_generator import RENDERERS as PDF_RENDERERS
-from .pptx_generator import (
-    generate_report,
-    _calc_pillar_score,
-    _calc_overall_score,
-    _calc_maturity_band,
+from .deck import (
     PILLAR_COUNT,
     SUBTOPICS_PER_PILLAR,
+    band_for,
+    overall_score,
+    pillar_score,
 )
+from .slides import build_deck
 
 # Single-user gate. One username and password, supplied by the environment.
 # `/health` stays open so the host's health check does not need credentials.
@@ -137,8 +138,8 @@ class ReportRequest(BaseModel):
     granuler_location: str = "Mumbai"
     savings_identified: str = ""
     # Work Granuler has already delivered for this client. Empty for a new
-    # client, which drops the three "progress delivered" slides from the deck
-    # rather than have the LLM invent a track record.
+    # client, which drops the "progress delivered" slide from the deck rather
+    # than have the LLM invent a track record.
     prior_work: str = ""
     pillars: list[PillarIn]
 
@@ -162,17 +163,28 @@ def logo():
     return FileResponse(LOGO_PATH, media_type="image/png")
 
 
-@app.get("/image-brief")
-def image_brief(company_name: str = Query(""), overall_score: float | None = Query(None)):
-    """The prompts for the stock photographs the template still carries.
+@app.post("/image-brief")
+async def image_brief(request: Request):
+    """The prompt sheet for a generated deck's numbered image placeholders.
 
-    Naming the client matters for the maturity-band diagram, whose replacement
-    has to carry this company's name and this company's band.
+    Takes the deck back rather than the form data: the API keeps no state, and
+    a deck's own speaker notes are the only record of which slots it opened
+    that cannot drift from the file the assessor is actually holding.
     """
-    name = "Granuler_Image_Brief" if not company_name else \
-        f"{re.sub(r'[^A-Za-z0-9]+', '_', company_name).strip('_')}_Image_Brief"
+    from pptx import Presentation
+
+    body = await request.body()
+    if not body:
+        raise HTTPException(status_code=422, detail="Post the generated .pptx as the body")
+    try:
+        slots = slots_from_deck(Presentation(io.BytesIO(body)))
+    except Exception:
+        raise HTTPException(status_code=422, detail="Body is not a readable .pptx")
+    company = request.query_params.get("company_name", "")
+    name = "Granuler_Image_Brief" if not company else \
+        f"{re.sub(r'[^A-Za-z0-9]+', '_', company).strip('_')}_Image_Brief"
     return Response(
-        content=image_brief_pdf(company=company_name, score=overall_score),
+        content=image_brief_pdf(slots, company=company),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'},
     )
@@ -186,82 +198,63 @@ def generate(req: ReportRequest):
     pillars_raw = [p.model_dump() for p in req.pillars]
     intake = req.model_dump(exclude={"pillars"})
 
-    overall_score = _calc_overall_score(pillars_raw, SUBTOPICS_PER_PILLAR)
-    maturity_band = _calc_maturity_band(overall_score)
-
+    score = overall_score(pillars_raw, SUBTOPICS_PER_PILLAR)
+    band = band_for(score)[0]
     pillar_summaries = [
-        {"name": p["pillar"], "score": _calc_pillar_score(p["subtopics"], SUBTOPICS_PER_PILLAR)}
+        {"name": p["pillar"], "score": pillar_score(p["subtopics"], SUBTOPICS_PER_PILLAR)}
         for p in pillars_raw
     ]
 
-    worst = min(pillar_summaries, key=lambda p: p["score"])
-    worst_pillar_raw = next(p for p in pillars_raw if p["pillar"] == worst["name"])
-
-    # Shared by every prompt that needs the client's situation.
-    ctx = dict(
+    # Every narrative prompt needs the same situation brief. The company's real
+    # name is never part of it - see _LLM_CLIENT_LABEL.
+    brief = dict(
         company_name=_LLM_CLIENT_LABEL,
         industry=req.industry,
         business_goals=req.business_goals,
         pain_points=req.pain_points,
         core_systems=req.core_systems,
         major_risks=req.major_risks,
+        overall_score=score,
+        maturity_band=band,
+        pillar_summaries=pillar_summaries,
     )
 
-    # 17-18 LLM calls fill this deck. Run sequentially that is 60-90s; fanned
-    # out over threads the wall clock is roughly the slowest single call.
+    # Eight or nine section calls plus one per pillar. Run sequentially that is 60-90s;
+    # fanned out over threads the wall clock is roughly the slowest single call.
     # litellm.completion is blocking HTTP, so threads are the right primitive.
     jobs: dict[str, tuple] = {
-        "global": (generate_global_content, dict(
-            company_name=_LLM_CLIENT_LABEL,
-            industry=req.industry,
-            overall_score=overall_score,
-            maturity_band=maturity_band,
-            business_goals=req.business_goals,
-            pain_points=req.pain_points,
-            pillar_summaries=pillar_summaries,
-        )),
-        "narrative": (generate_narrative_content, dict(
-            company_name=_LLM_CLIENT_LABEL,
-            industry=req.industry,
-            business_goals=req.business_goals,
-            pain_points=req.pain_points,
-            pillar_summaries=pillar_summaries,
-            worst_pillar_name=worst["name"],
-            worst_pillar_score=worst["score"],
-            worst_pillar_subtopics=worst_pillar_raw["subtopics"],
-        )),
-        "context": (generate_company_context, dict(
-            **ctx,
+        "executive": (generate_executive, brief),
+        "context": (generate_context, dict(
+            brief,
             locations=req.locations,
             products=req.products,
             industries_served=req.industries_served,
-            overall_score=overall_score,
-            maturity_band=maturity_band,
+            revenue_range=req.revenue_range,
+            employee_count=req.employee_count,
+            key_stakeholders=req.key_stakeholders,
+            change_readiness=req.change_readiness,
         )),
-        "architecture": (generate_architecture_content, dict(**ctx, maturity_band=maturity_band)),
-        "findings": (generate_findings_content, dict(**ctx, pillars=pillars_raw)),
-        "conditional": (generate_conditional_content, dict(**ctx, pillars=pillars_raw)),
-        "roadmap": (generate_roadmap_content, dict(
-            **ctx, priority_areas=req.priority_areas, pillar_summaries=pillar_summaries,
+        "findings": (generate_findings, dict(brief, pillars=pillars_raw)),
+        "risks": (generate_risks, dict(brief, pillars=pillars_raw)),
+        "deep_dives": (generate_deep_dives, dict(brief, pillars=pillars_raw)),
+        "architecture": (generate_architecture, brief),
+        "plan": (generate_plan, dict(
+            brief, pillars=pillars_raw, priority_areas=req.priority_areas,
         )),
-        "closing": (generate_closing_content, dict(
-            **ctx,
-            overall_score=overall_score,
-            maturity_band=maturity_band,
-            savings_identified=req.savings_identified,
+        "granuler": (generate_granuler, dict(
+            brief, granuler_location=req.granuler_location, locations=req.locations,
         )),
     }
+    # A new client has no track record, so the slide that reports one is not
+    # generated at all unless the assessor supplied the work.
     if req.prior_work.strip():
-        jobs["prior_work"] = (generate_prior_work_content, dict(
-            company_name=_LLM_CLIENT_LABEL,
-            industry=req.industry,
-            prior_work=req.prior_work,
+        jobs["prior_work"] = (generate_prior_work, dict(
+            brief, prior_work=req.prior_work,
             savings_identified=req.savings_identified,
         ))
 
-    with ThreadPoolExecutor(max_workers=12) as pool:
+    with ThreadPoolExecutor(max_workers=20) as pool:
         futures = {name: pool.submit(fn, **kwargs) for name, (fn, kwargs) in jobs.items()}
-        # Index the pillar futures so results keep their pillar order.
         pillar_futures = [
             pool.submit(
                 generate_pillar_content,
@@ -272,23 +265,12 @@ def generate(req: ReportRequest):
             )
             for i, p in enumerate(pillars_raw)
         ]
-        results = {name: _restore_name(f.result(), req.company_name) for name, f in futures.items()}
-        llm_pillars = [_restore_name(f.result(), req.company_name) for f in pillar_futures]
+        content = {name: _restore_name(f.result(), req.company_name)
+                   for name, f in futures.items()}
+        content["pillars"] = [_restore_name(f.result(), req.company_name)
+                              for f in pillar_futures]
 
-    pptx_bytes = generate_report(
-        intake=intake,
-        pillars=pillars_raw,
-        llm_global=results["global"],
-        llm_pillars=llm_pillars,
-        llm_narrative=results["narrative"],
-        llm_context=results["context"],
-        llm_architecture=results["architecture"],
-        llm_findings=results["findings"],
-        llm_conditional=results["conditional"],
-        llm_roadmap=results["roadmap"],
-        llm_closing=results["closing"],
-        llm_prior_work=results.get("prior_work"),
-    )
+    pptx_bytes, _slots = build_deck(intake, pillars_raw, content, SUBTOPICS_PER_PILLAR)
 
     filename = f"{req.company_name.replace(' ', '_')}_Granuler_Assessment.pptx"
     return Response(
@@ -386,12 +368,11 @@ def _parse_request(req: ReportRequest):
     pillars_raw = [p.model_dump() for p in req.pillars]
     intake = req.model_dump(exclude={"pillars"})
     pillar_summaries = [
-        {"name": p["pillar"], "score": _calc_pillar_score(p["subtopics"], SUBTOPICS_PER_PILLAR)}
+        {"name": p["pillar"], "score": pillar_score(p["subtopics"], SUBTOPICS_PER_PILLAR)}
         for p in pillars_raw
     ]
-    overall_score = _calc_overall_score(pillars_raw, SUBTOPICS_PER_PILLAR)
-    maturity_band = _calc_maturity_band(overall_score)
-    return pillars_raw, intake, pillar_summaries, overall_score, maturity_band
+    score = overall_score(pillars_raw, SUBTOPICS_PER_PILLAR)
+    return pillars_raw, intake, pillar_summaries, score, band_for(score)[0]
 
 
 @app.post("/generate-quick-wins")

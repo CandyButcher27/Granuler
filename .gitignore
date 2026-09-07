@@ -20,12 +20,9 @@ dist/
 # Generated output PPTX (not the template)
 *_Granuler_Assessment.pptx
 
-# Test artifacts
+# Test artifacts. Nothing in the repo needs a .pptx at runtime any more - the
+# deck is drawn from code - so this rule has no exception.
 *.pptx
-# ...but never the branded master template: it must ship to the deployed
-# container. `railway up` honours these patterns, so a bare *.pptx strips it
-# from the upload and /generate-report 500s with PackageNotFoundError.
-!assets/granuler_template.pptx
 
 # Claude / personal
 CLAUDE.md
@@ -45,6 +42,7 @@ outputs/
 pictures/
 Nihaar equipments Notes.txt
 SESSION_SUMMARY.md
+*_granuler.md
 
 # Full end-to-end run artifacts. Client discovery data - never committed.
 final_output/
